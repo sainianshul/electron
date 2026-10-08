@@ -35,13 +35,8 @@ Route::prefix('admin')->group(function () {
             Route::get('deleted', [\App\Http\Controllers\Admin\UserController::class, 'deleted'])->name('deleted');
             Route::get('deleted/data', [\App\Http\Controllers\Admin\UserController::class, 'deletedData'])->name('deleted.data');
             Route::post('{user}/restore', [\App\Http\Controllers\Admin\UserController::class, 'restore'])->name('restore');
-            
             Route::post('{user}/status', [\App\Http\Controllers\Admin\UserController::class, 'updateStatus'])->name('update-status');
             Route::post('{user}/revoke-token', [\App\Http\Controllers\Admin\UserController::class, 'revokeToken'])->name('revoke-token');
-            Route::get('{user}/products/data', [\App\Http\Controllers\Admin\UserController::class, 'userProductsData'])->name('products.data');
-            Route::get('{user}/requirements/data', [\App\Http\Controllers\Admin\UserController::class, 'userRequirementsData'])->name('requirements.data');
-            Route::get('{user}/leads/data', [\App\Http\Controllers\Admin\UserController::class, 'userLeadsData'])->name('leads.data');
-            Route::get('{user}/recent-views/data', [\App\Http\Controllers\Admin\UserController::class, 'userRecentViewsData'])->name('recent-views.data');
         });
         Route::resource('users', \App\Http\Controllers\Admin\UserController::class);
 
