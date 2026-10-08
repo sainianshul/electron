@@ -1,0 +1,86 @@
+# ============================================================
+# VCanCare — Docker Compose (FrankenPHP + Octane + Redis)
+# ============================================================
+
+services:
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: electron_app
+    restart: unless-stopped
+    working_dir: /var/www
+    ports:
+      - "9876:8000"
+    volumes:
+      - ./:/var/www
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      - OCTANE_SERVER=frankenphp
+
+  # Queue Worker — processes jobs from Redis
+  queue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: electron_queue
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./:/var/www
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    command: ["php", "artisan", "queue:work", "redis", "--sleep=3", "--tries=3", "--max-time=3600"]
+
+  mysql:
+    image: mysql:8.0
+    container_name: electron_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: laravel
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_PASSWORD: root
+      MYSQL_USER: laravel
+    ports:
+      - "3376:3306"
+    volumes:
+      - electron_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: electron_phpmyadmin
+    restart: unless-stopped
+    ports:
+      - "8076:80"
+    environment:
+      PMA_HOST: mysql
+      MYSQL_ROOT_PASSWORD: root
+    depends_on:
+      - mysql
+
+  redis:
+    image: redis:7-alpine
+    container_name: electron_redis
+    restart: unless-stopped
+    ports:
+      - "6376:6379"
+    volumes:
+      - electron_redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+
+volumes:
+  electron_mysql_data:
+  electron_redis_data:
