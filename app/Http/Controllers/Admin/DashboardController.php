@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Cache;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
