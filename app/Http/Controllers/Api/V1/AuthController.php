@@ -4,7 +4,8 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Api\Auth\SendOtpRequest;
+use App\Http\Requests\Api\Auth\LoginRequest;
+use App\Http\Requests\Api\Auth\RegisterRequest;
 use App\Http\Requests\Api\Auth\VerifyOtpRequest;
 use App\Services\AuthService;
 use Illuminate\Http\Request;
@@ -18,68 +19,63 @@ class AuthController extends Controller
     }
 
     #[OA\Post(
-        path: '/api/v1/auth/send-otp',
-        operationId: 'sendOtp',
-        summary: 'Send OTP to mobile number',
+        path: '/api/v1/auth/register',
+        operationId: 'register',
+        summary: 'Register a new user with email',
         tags: ['Authentication'],
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ['phone'],
+                required: ['name', 'email', 'password', 'password_confirmation'],
                 properties: [
-                    new OA\Property(property: 'phone', type: 'string', example: '9876543210', description: '10-digit Indian mobile number'),
+                    new OA\Property(property: 'name', type: 'string', example: 'John Doe'),
+                    new OA\Property(property: 'email', type: 'string', example: 'john@example.com'),
+                    new OA\Property(property: 'phone', type: 'string', nullable: true, example: '9876543210'),
+                    new OA\Property(property: 'password', type: 'string', example: 'password123'),
+                    new OA\Property(property: 'password_confirmation', type: 'string', example: 'password123'),
                 ]
             )
         ),
         responses: [
-            new OA\Response(response: 200, description: 'Success'),
+            new OA\Response(response: 200, description: 'Success - OTP Sent'),
             new OA\Response(response: 422, description: 'Validation Error'),
-            new OA\Response(response: 429, description: 'Too Many Requests'),
         ]
     )]
-    public function sendOtp(SendOtpRequest $request)
+    public function register(RegisterRequest $request)
     {
-        $result = $this->authService->sendOtp(
-            $request->string('phone')->value()
-        );
+        $result = $this->authService->register($request->validated());
 
-        $message = 'OTP sent successfully';
+        $message = 'Registration initiated. OTP sent to your email successfully.';
 
-        // Only show OTP in response if we are not in production or explicit config allows it
         if (!app()->environment('production')) {
-            $message .= " ({$result['otp']})";
+            $message .= " (OTP: {$result['otp']})";
         }
 
-        return ApiResponse::success(
-            $message
-        );
+        return ApiResponse::success($message);
     }
 
     #[OA\Post(
         path: '/api/v1/auth/verify-otp',
         operationId: 'verifyOtp',
-        summary: 'Verify OTP and authenticate user',
+        summary: 'Verify Email OTP to complete registration',
         tags: ['Authentication'],
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ['phone', 'otp', 'device_id'],
+                required: ['email', 'otp', 'device_id'],
                 properties: [
-                    new OA\Property(property: 'phone', type: 'string', example: '9876543210'),
+                    new OA\Property(property: 'email', type: 'string', example: 'john@example.com'),
                     new OA\Property(property: 'otp', type: 'string', example: '123456'),
                     new OA\Property(property: 'device_id', type: 'string', example: 'abc-123-def'),
                     new OA\Property(property: 'device_name', type: 'string', nullable: true, example: 'Samsung Galaxy S24'),
-                    new OA\Property(property: 'device_type', type: 'integer', nullable: true, example: 1, description: '1=ANDROID, 2=IOS, 3=WEB'),
+                    new OA\Property(property: 'device_type', type: 'integer', nullable: true, example: 1),
                     new OA\Property(property: 'fcm_token', type: 'string', nullable: true, example: 'fcm_xxxxxxxxx'),
-                    new OA\Property(property: 'latitude', type: 'number', format: 'float', nullable: true, example: 28.7041),
-                    new OA\Property(property: 'longitude', type: 'number', format: 'float', nullable: true, example: 77.1025),
                 ]
             )
         ),
         responses: [
             new OA\Response(response: 200, description: 'Success'),
             new OA\Response(response: 422, description: 'Validation Error or Invalid OTP'),
-            new OA\Response(response: 403, description: 'User Blocked'),
         ]
     )]
     public function verifyOtp(VerifyOtpRequest $request)
@@ -91,7 +87,49 @@ class AuthController extends Controller
         );
 
         return ApiResponse::success(
-            'Authentication successful',
+            'Registration successful and authenticated',
+            [
+                'token' => $result['token'],
+                'is_profile_complete' => $result['is_profile_complete'],
+                'user' => $result['user']->toApiResponse(),
+            ]
+        );
+    }
+
+    #[OA\Post(
+        path: '/api/v1/auth/login',
+        operationId: 'login',
+        summary: 'Login with Email and Password',
+        tags: ['Authentication'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['email', 'password', 'device_id'],
+                properties: [
+                    new OA\Property(property: 'email', type: 'string', example: 'john@example.com'),
+                    new OA\Property(property: 'password', type: 'string', example: 'password123'),
+                    new OA\Property(property: 'device_id', type: 'string', example: 'abc-123-def'),
+                    new OA\Property(property: 'device_name', type: 'string', nullable: true),
+                    new OA\Property(property: 'device_type', type: 'integer', nullable: true, example: 1),
+                    new OA\Property(property: 'fcm_token', type: 'string', nullable: true),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: 'Success'),
+            new OA\Response(response: 422, description: 'Validation Error'),
+        ]
+    )]
+    public function login(LoginRequest $request)
+    {
+        $result = $this->authService->login(
+            $request->validated(),
+            $request->ip(),
+            $request->userAgent()
+        );
+
+        return ApiResponse::success(
+            'Login successful',
             [
                 'token' => $result['token'],
                 'is_profile_complete' => $result['is_profile_complete'],

@@ -21,7 +21,7 @@ class DatabaseSeeder extends Seeder
             'password' => \Hash::make('admin@123'),
             'role' => User::ROLE_ADMIN,
             'status' => User::STATUS_ACTIVE,
-            'phone_verified_at' => now(),
+            'email_verified_at' => now(),
         ]);
 
         $this->call([

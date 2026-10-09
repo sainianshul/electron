@@ -44,6 +44,7 @@ class User extends Authenticatable
         'latitude',
         'longitude',
         'location_updated_at',
+        'email_verified_at',
     ];
 
     protected $hidden = [
@@ -60,6 +61,7 @@ class User extends Authenticatable
             'created_by' => 'integer',
             'password' => 'hashed',
             'phone_verified_at' => 'datetime',
+            'email_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
             'location_updated_at' => 'datetime',
             'latitude' => 'decimal:7',

@@ -33,6 +33,70 @@
                     <a href="{{ route('admin.users.index') }}" class="text-muted small mt-2 d-block">View all →</a>
                 </div>
             </div>
+        </div>
+        
+        <div class="col-sm-6 col-lg-3">
+            <div class="card card-sm">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            <span class="bg-indigo-lt text-indigo avatar avatar-md">
+                                <i class="ti ti-list-check fs-2"></i>
+                            </span>
+                        </div>
+                        <div class="col">
+                            <div class="fw-bold fs-2" id="stat-total-requirements">
+                                <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
+                            </div>
+                            <div class="text-secondary">Total Requirements</div>
+                        </div>
+                    </div>
+                    <a href="#" class="text-muted small mt-2 d-block">View all →</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-lg-3">
+            <div class="card card-sm">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            <span class="bg-green-lt text-green avatar avatar-md">
+                                <i class="ti ti-package fs-2"></i>
+                            </span>
+                        </div>
+                        <div class="col">
+                            <div class="fw-bold fs-2" id="stat-active-products">
+                                <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
+                            </div>
+                            <div class="text-secondary">Active Products</div>
+                        </div>
+                    </div>
+                    <a href="#" class="text-muted small mt-2 d-block">View all →</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-lg-3">
+            <div class="card card-sm">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            <span class="bg-yellow-lt text-yellow avatar avatar-md">
+                                <i class="ti ti-bulb fs-2"></i>
+                            </span>
+                        </div>
+                        <div class="col">
+                            <div class="fw-bold fs-2" id="stat-new-leads">
+                                <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
+                            </div>
+                            <div class="text-secondary">New Leads (Today)</div>
+                        </div>
+                    </div>
+                    <a href="#" class="text-muted small mt-2 d-block">View all →</a>
+                </div>
+            </div>
+        </div>
     </div>
 
     {{-- Revenue + Chart Row --}}
@@ -82,6 +146,7 @@
                     </table>
                 </div>
             </div>
+        </div>
     </div>
 
 @endsection
@@ -94,7 +159,12 @@
             .then(response => response.json())
             .then(data => {
                 // Update Top Stats
-                document.getElementById('stat-total-users').innerText = data.total_users;
+                document.getElementById('stat-total-users').innerText = data.total_users ?? '0';
+                
+                // Set defaults for missing stats in the backend response to prevent errors
+                document.getElementById('stat-total-requirements').innerText = data.total_requirements ?? '0';
+                document.getElementById('stat-active-products').innerText = data.active_products ?? '0';
+                document.getElementById('stat-new-leads').innerText = data.new_leads_today ?? '0';
 
                 // Update Recent Users
                 const usersTbody = document.getElementById('table-recent-users');
@@ -105,14 +175,14 @@
                             <tr>
                                 <td>
                                     <div class="d-flex py-1 align-items-center">
-                                        <span class="avatar me-2 bg-primary-lt">${user.initials}</span>
+                                        <span class="avatar me-2 bg-primary-lt">${user.initials || '?'}</span>
                                         <div class="flex-fill">
                                             <div class="font-weight-medium"><a href="/admin/users/${user.id}" class="text-reset">${user.name}</a></div>
                                         </div>
                                     </div>
                                 </td>
                                 <td class="text-secondary">${user.phone ?? 'N/A'}</td>
-                                <td>${user.joined}</td>
+                                <td>${user.joined || ''}</td>
                             </tr>
                         `;
                     });
@@ -122,7 +192,7 @@
                 }
 
                 // Render Chart
-                if (typeof ApexCharts !== 'undefined') {
+                if (typeof ApexCharts !== 'undefined' && data.chart && data.chart.counts) {
                     document.getElementById('chart-users').innerHTML = '';
                     new ApexCharts(document.getElementById('chart-users'), {
                         chart: {
@@ -152,7 +222,7 @@
                             name: "New Users",
                             data: data.chart.counts
                         }],
-                        tooltip: { theme: 'dark' },
+                        tooltip: { theme: 'light' },
                         grid: {
                             strokeDashArray: 4,
                             padding: { top: -20, right: 0, left: -4, bottom: -4 }
@@ -169,7 +239,7 @@
                         colors: ['#206bc4']
                     }).render();
                 } else {
-                    document.getElementById('chart-users').innerHTML = '<div class="text-center text-danger py-4">Chart library failed to load</div>';
+                    document.getElementById('chart-users').innerHTML = '<div class="text-center text-muted py-4">No chart data available</div>';
                 }
             })
             .catch(error => {
