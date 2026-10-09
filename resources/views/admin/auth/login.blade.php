@@ -81,7 +81,7 @@
         }
     </style>
 </head>
-<body class="d-flex flex-column" data-bs-theme="dark">
+<body class="d-flex flex-column" data-bs-theme="light">
 
     <div class="page page-center">
         <div class="container container-tight py-4">
