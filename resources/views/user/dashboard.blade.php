@@ -1,51 +1,83 @@
 @extends('admin.layouts.app')
 
-@section('title', 'My Dashboard')
+@section('title', 'Smart Home Dashboard')
 
 @push('styles')
 <style>
+    /* Apple Home Style Tokens */
+    .apple-stat-card {
+        border-radius: 16px;
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        background: var(--tblr-card-bg, #ffffff);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .apple-stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+    }
+    .apple-icon-circle {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+    }
+
+    /* Apple Home Appliance Card */
     .appliance-box {
-        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-        border-radius: 12px;
+        border-radius: 18px;
+        border: 1.5px solid rgba(0, 0, 0, 0.07);
+        background: var(--tblr-card-bg, #ffffff);
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.03);
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         position: relative;
         overflow: hidden;
     }
     .appliance-box:hover {
         transform: translateY(-3px);
-        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
     }
     .appliance-box.is-on {
-        border-color: rgba(47, 179, 68, 0.4);
+        border-color: rgba(47, 179, 68, 0.45);
+        background: linear-gradient(180deg, rgba(47, 179, 68, 0.04) 0%, var(--tblr-card-bg, #ffffff) 100%);
     }
     .appliance-icon-wrapper {
-        width: 48px;
-        height: 48px;
-        border-radius: 12px;
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 24px;
+        font-size: 28px;
         transition: all 0.3s ease;
     }
     .appliance-box.is-on .appliance-icon-wrapper {
-        background: rgba(47, 179, 68, 0.15) !important;
+        background: rgba(47, 179, 68, 0.16) !important;
         color: #2fb344 !important;
-        box-shadow: 0 0 16px rgba(47, 179, 68, 0.3);
+        box-shadow: 0 0 20px rgba(47, 179, 68, 0.35);
     }
     .appliance-box.is-off .appliance-icon-wrapper {
-        background: rgba(108, 117, 125, 0.1) !important;
-        color: #6c757d !important;
+        background: rgba(108, 117, 125, 0.08) !important;
+        color: #8c959f !important;
     }
+
+    /* Apple style big rounded switch */
     .power-switch-lg .form-check-input {
-        width: 3.2rem;
-        height: 1.7rem;
+        width: 3.4rem;
+        height: 1.85rem;
         cursor: pointer;
+        border-radius: 2rem;
+        transition: background-color 0.25s ease, box-shadow 0.25s ease;
     }
     .power-switch-lg .form-check-input:checked {
         background-color: #2fb344;
         border-color: #2fb344;
-        box-shadow: 0 0 10px rgba(47, 179, 68, 0.4);
+        box-shadow: 0 0 12px rgba(47, 179, 68, 0.45);
     }
+
     .pulse-dot {
         display: inline-block;
         width: 8px;
@@ -65,37 +97,45 @@
 
 @section('content')
 
+    {{-- Header --}}
     <div class="page-header d-print-none mb-4">
         <div class="row align-items-center">
             <div class="col">
-                <div class="page-pretitle">Welcome back, {{ auth()->user()->name }}</div>
-                <h2 class="page-title">Smart Home Dashboard</h2>
+                <div class="page-pretitle text-uppercase fw-bold text-secondary">
+                    Welcome back, {{ auth()->user()->name }}
+                </div>
+                <h2 class="page-title d-flex align-items-center gap-2">
+                    <span class="avatar bg-primary-lt" style="border-radius: 12px;">
+                        <i class="ti ti-home fs-2 text-primary"></i>
+                    </span>
+                    Smart Home Dashboard
+                </h2>
+                <div class="text-secondary small mt-1">
+                    Control all your home lights, fans, and appliances in one place.
+                </div>
             </div>
-            <div class="col-auto d-flex gap-2">
-                <a href="{{ route('user.appliances.index') }}" class="btn btn-outline-primary">
-                    <i class="ti ti-plug me-1"></i>My Appliances
-                </a>
-                <a href="{{ route('user.devices.create') }}" class="btn btn-primary">
-                    <i class="ti ti-plus me-1"></i>Add Device
+            <div class="col-auto">
+                <a href="{{ route('user.devices.index') }}" class="btn btn-outline-primary" style="border-radius: 10px;">
+                    <i class="ti ti-cpu me-1"></i>My Smart Boards
                 </a>
             </div>
         </div>
     </div>
 
-    {{-- Stats Row --}}
+    {{-- Modern Apple Style Stats --}}
     <div class="row row-deck row-cards mb-4">
         <div class="col-sm-6 col-lg-3">
-            <div class="card card-sm">
-                <div class="card-body">
+            <div class="card apple-stat-card card-sm">
+                <div class="card-body p-3">
                     <div class="row align-items-center">
                         <div class="col-auto">
-                            <span class="bg-primary-lt text-primary avatar avatar-md">
-                                <i class="ti ti-cpu fs-2"></i>
+                            <span class="apple-icon-circle bg-primary-lt text-primary">
+                                <i class="ti ti-cpu"></i>
                             </span>
                         </div>
                         <div class="col">
-                            <div class="fw-bold fs-2">{{ $stats['total_devices'] }}</div>
-                            <div class="text-secondary">My Devices</div>
+                            <div class="fw-bold fs-1" id="stat-devices">{{ $stats['total_devices'] }}</div>
+                            <div class="text-secondary small">Registered Boards</div>
                         </div>
                     </div>
                 </div>
@@ -103,17 +143,17 @@
         </div>
 
         <div class="col-sm-6 col-lg-3">
-            <div class="card card-sm">
-                <div class="card-body">
+            <div class="card apple-stat-card card-sm">
+                <div class="card-body p-3">
                     <div class="row align-items-center">
                         <div class="col-auto">
-                            <span class="bg-success-lt text-success avatar avatar-md">
-                                <i class="ti ti-wifi fs-2"></i>
+                            <span class="apple-icon-circle bg-success-lt text-success">
+                                <i class="ti ti-wifi"></i>
                             </span>
                         </div>
                         <div class="col">
-                            <div class="fw-bold fs-2 text-success">{{ $stats['online_devices'] }}</div>
-                            <div class="text-secondary">Online Boards</div>
+                            <div class="fw-bold fs-1 text-success" id="stat-online">{{ $stats['online_devices'] }}</div>
+                            <div class="text-secondary small">Online Boards</div>
                         </div>
                     </div>
                 </div>
@@ -121,17 +161,17 @@
         </div>
 
         <div class="col-sm-6 col-lg-3">
-            <div class="card card-sm">
-                <div class="card-body">
+            <div class="card apple-stat-card card-sm">
+                <div class="card-body p-3">
                     <div class="row align-items-center">
                         <div class="col-auto">
-                            <span class="bg-azure-lt text-azure avatar avatar-md">
-                                <i class="ti ti-plug fs-2"></i>
+                            <span class="apple-icon-circle bg-green-lt text-green">
+                                <i class="ti ti-power"></i>
                             </span>
                         </div>
                         <div class="col">
-                            <div class="fw-bold fs-2">{{ $stats['active_appliances'] }}</div>
-                            <div class="text-secondary">Active Appliances</div>
+                            <div class="fw-bold fs-1 text-green" id="stat-on">{{ $stats['active_on'] }}</div>
+                            <div class="text-secondary small">Running (ON)</div>
                         </div>
                     </div>
                 </div>
@@ -139,17 +179,17 @@
         </div>
 
         <div class="col-sm-6 col-lg-3">
-            <div class="card card-sm">
-                <div class="card-body">
+            <div class="card apple-stat-card card-sm">
+                <div class="card-body p-3">
                     <div class="row align-items-center">
                         <div class="col-auto">
-                            <span class="bg-green-lt text-green avatar avatar-md">
-                                <i class="ti ti-power fs-2"></i>
+                            <span class="apple-icon-circle bg-secondary-lt text-secondary">
+                                <i class="ti ti-moon"></i>
                             </span>
                         </div>
                         <div class="col">
-                            <div class="fw-bold fs-2 text-green">{{ $stats['active_on'] }}</div>
-                            <div class="text-secondary">Running (ON) Now</div>
+                            <div class="fw-bold fs-1 text-secondary" id="stat-off">{{ $stats['active_off'] }}</div>
+                            <div class="text-secondary small">Turned OFF</div>
                         </div>
                     </div>
                 </div>
@@ -157,81 +197,103 @@
         </div>
     </div>
 
-    {{-- Quick Appliances Control (Box UI) --}}
+    {{-- Main Section: Smart Home Appliances Grid --}}
     <div class="d-flex align-items-center justify-content-between mb-3">
         <div>
             <h3 class="m-0 fw-bold d-flex align-items-center gap-2">
-                <i class="ti ti-switch text-primary"></i>Quick Appliance Controls
+                <i class="ti ti-switch text-primary"></i>Appliances & Switches
             </h3>
-            <div class="text-secondary small">Switch on/off your smart lights and fans with instant response.</div>
+            <div class="text-secondary small">Toggle any appliance switch below for instant control.</div>
         </div>
-        <a href="{{ route('user.appliances.index') }}" class="btn btn-sm btn-outline-primary">
-            Manage All Appliances <i class="ti ti-arrow-right ms-1"></i>
-        </a>
+        <div>
+            <a href="{{ route('user.devices.index') }}" class="btn btn-sm btn-outline-primary" style="border-radius: 8px;">
+                <i class="ti ti-plus me-1"></i>Add Appliance via Boards
+            </a>
+        </div>
     </div>
 
     @if($assignedPins->isEmpty())
-        <div class="card card-dashed text-center py-4 mb-4">
+        <div class="card card-dashed text-center py-5 mb-4" style="border-radius: 16px;">
             <div class="card-body">
-                <p class="text-secondary m-0">
-                    @if($devices->isEmpty())
-                        No smart devices found. <a href="{{ route('user.devices.create') }}">Add your first board</a> to connect appliances.
-                    @else
-                        No appliances attached to your boards yet. <a href="{{ route('user.appliances.index') }}">Go to My Appliances</a> to attach lights or fans.
-                    @endif
-                </p>
+                <div class="avatar avatar-xl bg-azure-lt mb-3" style="width: 68px; height: 68px; border-radius: 18px;">
+                    <i class="ti ti-plug-connected fs-1 text-azure"></i>
+                </div>
+                @if($devices->isEmpty())
+                    <h3 class="fw-bold mb-2">No Smart Boards Connected</h3>
+                    <p class="text-secondary max-w-sm mx-auto mb-4" style="max-width: 480px;">
+                        To start controlling appliances, you first need to register your smart board (e.g. NodeMCU ESP8266).
+                    </p>
+                    <a href="{{ route('user.devices.create') }}" class="btn btn-primary" style="border-radius: 10px;">
+                        <i class="ti ti-plus me-1"></i>Add My First Board
+                    </a>
+                @else
+                    <h3 class="fw-bold mb-2">No Appliances Added Yet</h3>
+                    <p class="text-secondary max-w-sm mx-auto mb-4" style="max-width: 480px;">
+                        Your smart board is registered! Go to <strong>My Devices</strong>, open your board, and click <strong>"Add Appliance"</strong> to connect your lights, fans, and switches.
+                    </p>
+                    <a href="{{ route('user.devices.index') }}" class="btn btn-primary" style="border-radius: 10px;">
+                        <i class="ti ti-cpu me-1"></i>Go to My Devices
+                    </a>
+                @endif
             </div>
         </div>
     @else
-        <div class="row row-cards mb-4">
-            @foreach($assignedPins->take(6) as $pin)
+        <div class="row row-cards mb-4" id="dashboard-appliances-grid">
+            @foreach($assignedPins as $pin)
                 @php
                     $isOn = ($pin->pin_type === 'PWM') ? ((int)$pin->current_state > 0) : ($pin->current_state === '1');
                     $iconClass = $pin->appliance ? ($pin->appliance->icon ?: 'ti ti-plug') : 'ti ti-plug';
                 @endphp
-                <div class="col-sm-6 col-lg-4 col-xl-4" id="appliance-col-{{ $pin->id }}">
+                <div class="col-sm-6 col-lg-4 col-xl-3" id="appliance-col-{{ $pin->id }}">
                     <div class="card appliance-box {{ $isOn ? 'is-on' : 'is-off' }}" id="card-pin-{{ $pin->id }}">
                         <div class="card-body p-3">
-                            <div class="d-flex align-items-start justify-content-between mb-2">
+                            
+                            {{-- Card Top: Icon + Board Pill --}}
+                            <div class="d-flex align-items-start justify-content-between mb-3">
                                 <div class="d-flex align-items-center gap-2">
-                                    <div class="appliance-icon-wrapper">
+                                    <div class="appliance-icon-wrapper" id="icon-wrapper-{{ $pin->id }}">
                                         @if($pin->appliance && $pin->appliance->image_url)
-                                            <img src="{{ $pin->appliance->image_url }}" alt="" style="width: 30px; height: 30px; object-fit: contain;">
+                                            <img src="{{ $pin->appliance->image_url }}" alt="{{ $pin->appliance->name }}" style="width: 36px; height: 36px; object-fit: contain;">
                                         @else
                                             <i class="{{ $iconClass }}"></i>
                                         @endif
                                     </div>
                                     <div>
-                                        <div class="badge bg-secondary-lt font-monospace text-truncate" style="max-width: 140px;">
+                                        <div class="badge bg-secondary-lt font-monospace text-truncate" style="max-width: 125px; border-radius: 6px;">
                                             <i class="ti ti-cpu me-1"></i>{{ $pin->device->name }}
                                         </div>
                                     </div>
                                 </div>
-                                <span class="badge {{ $pin->pin_type === 'PWM' ? 'bg-purple-lt' : 'bg-cyan-lt' }}">
+                                <span class="badge {{ $pin->pin_type === 'PWM' ? 'bg-purple-lt' : 'bg-cyan-lt' }}" style="border-radius: 6px;">
                                     {{ $pin->pin_type }}
                                 </span>
                             </div>
 
+                            {{-- Appliance Titles --}}
                             <div class="mb-3">
                                 <h4 class="fw-bold mb-0 text-truncate" title="{{ $pin->custom_name }}">
                                     {{ $pin->custom_name ?: ($pin->appliance->name ?? 'Appliance') }}
                                 </h4>
-                                <div class="text-secondary small">{{ $pin->appliance->name ?? 'Device Channel' }}</div>
+                                <div class="text-secondary small">{{ $pin->appliance->name ?? 'Smart Appliance' }}</div>
                             </div>
 
+                            {{-- Live Status Indicator & Switch Bar --}}
                             <div class="d-flex align-items-center justify-content-between pt-2 border-top">
-                                <div class="status-indicator-text" id="status-text-{{ $pin->id }}">
-                                    @if($isOn)
-                                        <span class="text-success fw-semibold small d-flex align-items-center">
-                                            <span class="pulse-dot online"></span>ON
-                                        </span>
-                                    @else
-                                        <span class="text-secondary small d-flex align-items-center">
-                                            <span class="pulse-dot offline"></span>OFF
-                                        </span>
-                                    @endif
+                                <div>
+                                    <div class="status-indicator-text" id="status-text-{{ $pin->id }}">
+                                        @if($isOn)
+                                            <span class="text-success fw-semibold small d-flex align-items-center">
+                                                <span class="pulse-dot online"></span>RUNNING (ON)
+                                            </span>
+                                        @else
+                                            <span class="text-secondary small d-flex align-items-center">
+                                                <span class="pulse-dot offline"></span>OFF
+                                            </span>
+                                        @endif
+                                    </div>
                                 </div>
 
+                                {{-- The ON/OFF Switch --}}
                                 <div class="power-switch-lg">
                                     <label class="form-check form-switch m-0">
                                         <input class="form-check-input appliance-toggle" type="checkbox"
@@ -241,6 +303,7 @@
                                     </label>
                                 </div>
                             </div>
+
                         </div>
                     </div>
                 </div>
@@ -248,21 +311,32 @@
         </div>
     @endif
 
-    {{-- Boards List --}}
-    <div class="d-flex align-items-center justify-content-between mb-3">
-        <h3 class="m-0 fw-bold d-flex align-items-center gap-2">
-            <i class="ti ti-cpu text-primary"></i>My Smart Boards
-        </h3>
-        <a href="{{ route('user.devices.index') }}" class="text-secondary small">View All Devices →</a>
+    {{-- Bottom Section: Smart Boards List (Where User Adds Appliances) --}}
+    <div class="d-flex align-items-center justify-content-between mb-3 mt-4">
+        <div>
+            <h3 class="m-0 fw-bold d-flex align-items-center gap-2">
+                <i class="ti ti-cpu text-primary"></i>My Smart Boards
+            </h3>
+            <div class="text-secondary small">Click any board to manage connected appliances and channels.</div>
+        </div>
+        <a href="{{ route('user.devices.index') }}" class="text-secondary small">View All Boards →</a>
     </div>
 
     <div class="row row-cards">
         @forelse($devices as $device)
+            @php
+                $totalPins = $device->pins->count();
+                $assignedCount = $device->pins->where('is_assigned', true)->count();
+                $freeCount = $totalPins - $assignedCount;
+                $pct = $totalPins > 0 ? round(($assignedCount / $totalPins) * 100) : 0;
+            @endphp
             <div class="col-md-6 col-lg-4">
-                <div class="card">
+                <div class="card apple-stat-card">
                     <div class="card-header d-flex justify-content-between align-items-center py-2">
                         <div class="d-flex align-items-center">
-                            <span class="avatar avatar-sm bg-primary-lt me-2"><i class="ti ti-cpu fs-3"></i></span>
+                            <span class="avatar avatar-sm bg-primary-lt me-2" style="border-radius: 8px;">
+                                <i class="ti ti-cpu fs-3"></i>
+                            </span>
                             <div>
                                 <h4 class="card-title m-0">{{ $device->name }}</h4>
                                 <small class="text-secondary font-monospace">{{ $device->mac_address }}</small>
@@ -270,48 +344,36 @@
                         </div>
                         <div>
                             @if($device->is_online)
-                                <span class="badge bg-success-lt"><i class="ti ti-wifi me-1"></i>Online</span>
+                                <span class="badge bg-success-lt" style="border-radius: 6px;"><i class="ti ti-wifi me-1"></i>Online</span>
                             @else
-                                <span class="badge bg-secondary-lt"><i class="ti ti-wifi-off me-1"></i>Offline</span>
+                                <span class="badge bg-secondary-lt" style="border-radius: 6px;"><i class="ti ti-wifi-off me-1"></i>Offline</span>
                             @endif
                         </div>
                     </div>
 
                     <div class="card-body p-3">
                         <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="text-secondary small fw-bold">CHANNELS USAGE</span>
-                            <span class="badge bg-azure-lt">{{ $device->pins->where('is_assigned', true)->count() }} / {{ $device->pins->count() }} Used</span>
+                            <span class="text-secondary small fw-bold">CHANNELS IN USE</span>
+                            <span class="badge bg-azure-lt" style="border-radius: 6px;">{{ $assignedCount }} / {{ $totalPins }} Attached</span>
                         </div>
-                        <div class="progress progress-sm">
-                            @php
-                                $total = $device->pins->count();
-                                $used = $device->pins->where('is_assigned', true)->count();
-                                $pct = $total > 0 ? round(($used / $total) * 100) : 0;
-                            @endphp
+                        <div class="progress progress-sm" style="height: 6px; border-radius: 4px;">
                             <div class="progress-bar bg-primary" style="width: {{ $pct }}%"></div>
                         </div>
                     </div>
 
                     <div class="card-footer bg-light-subtle d-flex justify-content-between align-items-center py-2">
-                        <span class="small text-secondary">{{ $device->pins->where('is_assigned', false)->count() }} slots available</span>
-                        <a href="{{ route('user.devices.show', $device->id) }}" class="btn btn-sm btn-outline-primary">
-                            Manage Board <i class="ti ti-arrow-right ms-1"></i>
+                        <span class="small text-secondary">{{ $freeCount }} channels free</span>
+                        <a href="{{ route('user.devices.show', $device->id) }}" class="btn btn-sm btn-primary" style="border-radius: 8px;">
+                            <i class="ti ti-plus me-1"></i>Manage & Add Appliances
                         </a>
                     </div>
                 </div>
             </div>
         @empty
             <div class="col-12">
-                <div class="card card-dashed text-center py-5">
+                <div class="card card-dashed text-center py-4" style="border-radius: 16px;">
                     <div class="card-body">
-                        <div class="avatar avatar-xl bg-primary-lt mb-3">
-                            <i class="ti ti-cpu fs-1"></i>
-                        </div>
-                        <h3>No Smart Devices Added Yet</h3>
-                        <p class="text-secondary mb-4">Add your NodeMCU ESP8266 board to begin controlling your home lights, fans, and appliances.</p>
-                        <a href="{{ route('user.devices.create') }}" class="btn btn-primary">
-                            <i class="ti ti-plus me-1"></i>Add My First Device
-                        </a>
+                        <p class="text-secondary m-0">No smart boards found. <a href="{{ route('user.devices.create') }}">Register your first board.</a></p>
                     </div>
                 </div>
             </div>
@@ -322,41 +384,57 @@
 
 @push('scripts')
 <script>
-    $(document).on('change', '.appliance-toggle', function () {
-        let $switch = $(this);
-        let pinId = $switch.data('pin-id');
-        let applianceName = $switch.data('name');
-        let isChecked = $switch.is(':checked');
-        let state = isChecked ? '1' : '0';
+    $(document).ready(function () {
 
-        let $card = $('#card-pin-' + pinId);
-        let $statusText = $('#status-text-' + pinId);
+        // ── Instant ON/OFF Switch Handler ─────────────────────────────
+        $(document).on('change', '.appliance-toggle', function () {
+            let $switch = $(this);
+            let pinId = $switch.data('pin-id');
+            let applianceName = $switch.data('name');
+            let isChecked = $switch.is(':checked');
+            let state = isChecked ? '1' : '0';
 
-        if (isChecked) {
-            $card.removeClass('is-off').addClass('is-on');
-            $statusText.html('<span class="text-success fw-semibold small d-flex align-items-center"><span class="pulse-dot online"></span>ON</span>');
-        } else {
-            $card.removeClass('is-on').addClass('is-off');
-            $statusText.html('<span class="text-secondary small d-flex align-items-center"><span class="pulse-dot offline"></span>OFF</span>');
+            let $card = $('#card-pin-' + pinId);
+            let $statusText = $('#status-text-' + pinId);
+
+            // Optimistic visual update
+            if (isChecked) {
+                $card.removeClass('is-off').addClass('is-on');
+                $statusText.html('<span class="text-success fw-semibold small d-flex align-items-center"><span class="pulse-dot online"></span>RUNNING (ON)</span>');
+            } else {
+                $card.removeClass('is-on').addClass('is-off');
+                $statusText.html('<span class="text-secondary small d-flex align-items-center"><span class="pulse-dot offline"></span>OFF</span>');
+            }
+
+            $.ajax({
+                url: '/appliances/' + pinId + '/toggle',
+                type: 'POST',
+                data: { state: state, _token: '{{ csrf_token() }}' },
+                success: function (res) {
+                    showToast(res.message || (applianceName + ' state updated!'), 'success');
+                    updateStats();
+                },
+                error: function () {
+                    // Revert switch on error
+                    $switch.prop('checked', !isChecked);
+                    if (!isChecked) {
+                        $card.removeClass('is-off').addClass('is-on');
+                    } else {
+                        $card.removeClass('is-on').addClass('is-off');
+                    }
+                    showToast('Failed to toggle ' + applianceName, 'error');
+                }
+            });
+        });
+
+        function updateStats() {
+            let total = $('.appliance-toggle').length;
+            let on = $('.appliance-toggle:checked').length;
+            let off = total - on;
+            $('#stat-on').text(on);
+            $('#stat-off').text(off);
         }
 
-        $.ajax({
-            url: '/appliances/' + pinId + '/toggle',
-            type: 'POST',
-            data: { state: state, _token: '{{ csrf_token() }}' },
-            success: function (res) {
-                showToast(res.message || (applianceName + ' toggled!'), 'success');
-            },
-            error: function () {
-                $switch.prop('checked', !isChecked);
-                if (!isChecked) {
-                    $card.removeClass('is-off').addClass('is-on');
-                } else {
-                    $card.removeClass('is-on').addClass('is-off');
-                }
-                showToast('Failed to toggle ' + applianceName, 'error');
-            }
-        });
     });
 </script>
 @endpush

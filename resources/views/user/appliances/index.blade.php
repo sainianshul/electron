@@ -60,6 +60,67 @@
     .pulse-dot.offline {
         background-color: #a8aeb7;
     }
+
+    /* Apple UI Appliance Picker Grid */
+    .apple-picker-card {
+        border-radius: 14px;
+        border: 1.5px solid rgba(0, 0, 0, 0.08);
+        background: var(--tblr-card-bg, #ffffff);
+        padding: 12px 6px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+        user-select: none;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+    .apple-picker-card:hover {
+        transform: translateY(-2px);
+        border-color: #206bc4;
+        box-shadow: 0 6px 14px rgba(32, 107, 196, 0.12);
+    }
+    .apple-picker-card.is-selected {
+        border-color: #206bc4 !important;
+        background: rgba(32, 107, 196, 0.08) !important;
+        box-shadow: 0 0 0 2px rgba(32, 107, 196, 0.25) !important;
+    }
+    .apple-picker-card .check-pill {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #206bc4;
+        color: #ffffff;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+    }
+    .apple-picker-card.is-selected .check-pill {
+        display: flex;
+    }
+    .apple-picker-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        margin: 0 auto 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 26px;
+        background: rgba(32, 107, 196, 0.1);
+        color: #206bc4;
+    }
+    .apple-picker-card.is-selected .apple-picker-icon {
+        background: #206bc4;
+        color: #ffffff;
+    }
 </style>
 @endpush
 
@@ -333,21 +394,46 @@
                                 </select>
                             </div>
 
-                            {{-- Step 2: Select Appliance from Catalog --}}
+                            {{-- Step 2: Apple UI Card Grid Picker --}}
                             <div class="mb-3">
-                                <label class="form-label required">Select Appliance to Attach</label>
-                                <select name="appliance_id" id="modal-select-appliance" class="form-select" required>
-                                    <option value="" disabled selected>— Choose Appliance —</option>
-                                    @foreach($catalogAppliances as $appliance)
-                                        <option value="{{ $appliance->id }}" 
-                                            data-name="{{ $appliance->name }}"
-                                            data-signal="{{ $appliance->signal_type }}"
-                                            data-type="{{ $appliance->type }}"
-                                            data-icon="{{ $appliance->icon }}">
-                                            {{ $appliance->name }} ({{ $appliance->signal_type }} - {{ $appliance->type }})
-                                        </option>
-                                    @endforeach
-                                </select>
+                                <label class="form-label fw-bold text-secondary text-uppercase small mb-2">Choose Appliance</label>
+                                <input type="hidden" name="appliance_id" id="modal-select-appliance" value="" required>
+
+                                <div class="apple-picker-grid" style="max-height: 280px; overflow-y: auto;">
+                                    <div class="row g-2">
+                                        @foreach($catalogAppliances as $appliance)
+                                            @php
+                                                $icon = $appliance->icon ?: 'ti ti-plug';
+                                            @endphp
+                                            <div class="col-4 col-sm-4 col-md-3">
+                                                <div class="apple-picker-card" 
+                                                    data-id="{{ $appliance->id }}"
+                                                    data-name="{{ $appliance->name }}"
+                                                    data-signal="{{ $appliance->signal_type }}">
+                                                    
+                                                    <div class="check-pill">
+                                                        <i class="ti ti-check"></i>
+                                                    </div>
+
+                                                    <div class="apple-picker-icon">
+                                                        @if($appliance->image_url)
+                                                            <img src="{{ $appliance->image_url }}" alt="{{ $appliance->name }}" style="width: 32px; height: 32px; object-fit: contain;">
+                                                        @else
+                                                            <i class="{{ $icon }}"></i>
+                                                        @endif
+                                                    </div>
+
+                                                    <div class="fw-semibold small text-truncate w-100" title="{{ $appliance->name }}">
+                                                        {{ $appliance->name }}
+                                                    </div>
+                                                    <div class="text-muted" style="font-size: 11px;">
+                                                        {{ $appliance->signal_type === 'PWM' ? 'Dimmer / Speed' : 'Relay Switch' }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
                             </div>
 
                             {{-- Step 3: Real-Time Hardware Slot Availability Box --}}
@@ -487,16 +573,23 @@
             });
         }
 
-        $('#modal-select-device, #modal-select-appliance').on('change', checkSlotAvailability);
+        $(document).on('click', '.apple-picker-card', function () {
+            $('.apple-picker-card').removeClass('is-selected');
+            $(this).addClass('is-selected');
 
-        // Pre-fill custom name placeholder on appliance change
-        $('#modal-select-appliance').on('change', function () {
-            let opt = $(this).find(':selected');
-            let name = opt.data('name');
-            if (name && !$('#modal-input-name').val()) {
-                $('#modal-input-name').attr('placeholder', 'e.g. Master Bedroom ' + name);
+            let applianceId = $(this).data('id');
+            let applianceName = $(this).data('name');
+
+            $('#modal-select-appliance').val(applianceId);
+
+            if (!$('#modal-input-name').val()) {
+                $('#modal-input-name').attr('placeholder', 'e.g. Living Room ' + applianceName);
             }
+
+            checkSlotAvailability();
         });
+
+        $('#modal-select-device').on('change', checkSlotAvailability);
 
         // ── 4. Disconnect / Detach Appliance ────────────────────────
         $(document).on('click', '.btn-detach-appliance', function () {
