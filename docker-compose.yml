@@ -81,6 +81,21 @@ services:
       - electron_redis_data:/data
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
 
+  # Eclipse Mosquitto — MQTT Message Broker for ESP8266 / IoT devices
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: electron_mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - electron_mosquitto_data:/mosquitto/data
+      - electron_mosquitto_log:/mosquitto/log
+
 volumes:
   electron_mysql_data:
   electron_redis_data:
+  electron_mosquitto_data:
+  electron_mosquitto_log:

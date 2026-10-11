@@ -9,6 +9,13 @@ use Exception;
 
 class ApplianceEngine
 {
+    protected MqttService $mqttService;
+
+    public function __construct(MqttService $mqttService)
+    {
+        $this->mqttService = $mqttService;
+    }
+
     /**
      * Check if a device has an available/empty slot that supports the given appliance.
      *
@@ -140,6 +147,9 @@ class ApplianceEngine
             'current_state' => $newState,
         ]);
 
+        // Publish hardware state to MQTT broker for NodeMCU / ESP8266
+        $mqttResult = $this->mqttService->publishPinState($pin, $newState);
+
         $applianceName = $pin->custom_name ?: ($pin->appliance->name ?? 'Appliance');
         $isOn = ($pin->pin_type === 'PWM') ? ((int)$newState > 0) : ($newState === '1');
         $statusText = $isOn ? 'ON' : 'OFF';
@@ -150,6 +160,7 @@ class ApplianceEngine
             'state' => $newState,
             'is_on' => $isOn,
             'appliance_name' => $applianceName,
+            'mqtt' => $mqttResult,
             'message' => "{$applianceName} is now turned {$statusText}.",
         ];
     }
