@@ -126,9 +126,18 @@
                         </a>
                     </li>
 
-                    {{-- User Smart Devices --}}
+                    {{-- User Smart Devices & Appliances --}}
                     <li class="nav-item mt-3 mb-1">
                         <div class="nav-link text-uppercase text-muted fs-8 fw-bold">My Smart Home</div>
+                    </li>
+
+                    <li class="nav-item {{ request()->routeIs('user.appliances.*') ? 'active' : '' }}">
+                        <a class="nav-link" href="{{ route('user.appliances.index') }}">
+                            <span class="nav-link-icon d-md-none d-lg-inline-block">
+                                <i class="ti ti-plug"></i>
+                            </span>
+                            <span class="nav-link-title">My Appliances</span>
+                        </a>
                     </li>
 
                     <li class="nav-item {{ request()->routeIs('user.devices.index') || request()->routeIs('user.devices.show') ? 'active' : '' }}">

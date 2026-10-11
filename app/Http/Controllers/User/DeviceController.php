@@ -6,11 +6,20 @@ use App\Http\Controllers\Controller;
 use App\Models\Appliance;
 use App\Models\Device;
 use App\Models\DevicePin;
+use App\Services\ApplianceEngine;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class DeviceController extends Controller
 {
+    protected ApplianceEngine $engine;
+
+    public function __construct(ApplianceEngine $engine)
+    {
+        $this->engine = $engine;
+    }
+
     public function index()
     {
         $devices = auth()->user()->devices()->with(['pins.appliance'])->latest()->paginate(12);
@@ -48,9 +57,10 @@ class DeviceController extends Controller
         abort_if($device->user_id !== auth()->id(), 403, 'Unauthorized device access.');
 
         $device->load(['pins.appliance']);
-        $appliances = Appliance::where('status', Appliance::STATUS_ACTIVE)->get();
+        $appliances = Appliance::where('status', Appliance::STATUS_ACTIVE)->orderBy('name')->get();
+        $capacity = $this->engine->getDeviceCapacity($device);
 
-        return view('user.devices.show', compact('device', 'appliances'));
+        return view('user.devices.show', compact('device', 'appliances', 'capacity'));
     }
 
     public function edit(Device $device)
@@ -93,38 +103,40 @@ class DeviceController extends Controller
     {
         abort_if($device->user_id !== auth()->id() || $pin->device_id !== $device->id, 403);
 
-        $request->validate([
-            'state' => ['required', 'string'],
-        ]);
+        $result = $this->engine->toggleState($pin, $request->input('state'));
 
-        $pin->update([
-            'current_state' => $request->state,
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'pin' => $pin->pin_name,
-            'state' => $pin->current_state,
-            'message' => "Pin {$pin->pin_name} state updated."
-        ]);
+        return response()->json($result);
     }
 
-    public function assignPin(Request $request, Device $device, DevicePin $pin)
+    public function attachAppliance(Request $request, Device $device)
     {
-        abort_if($device->user_id !== auth()->id() || $pin->device_id !== $device->id, 403);
+        abort_if($device->user_id !== auth()->id(), 403);
 
         $request->validate([
-            'appliance_id' => ['nullable', 'exists:appliances,id'],
+            'appliance_id' => ['required', 'exists:appliances,id'],
             'custom_name' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $pin->update([
-            'appliance_id' => $request->appliance_id,
-            'custom_name' => $request->custom_name,
-            'is_assigned' => !empty($request->appliance_id),
-        ]);
+        $appliance = Appliance::findOrFail($request->appliance_id);
+
+        try {
+            $pin = $this->engine->allocateAppliance($device, $appliance, $request->custom_name);
+            return redirect()->route('user.devices.show', $device->id)
+                ->with('success', "{$pin->custom_name} added to this device successfully!");
+        } catch (Exception $e) {
+            return redirect()->route('user.devices.show', $device->id)
+                ->with('error', $e->getMessage());
+        }
+    }
+
+    public function detachAppliance(Device $device, DevicePin $pin)
+    {
+        abort_if($device->user_id !== auth()->id() || $pin->device_id !== $device->id, 403);
+
+        $name = $pin->custom_name ?: ($pin->appliance->name ?? 'Appliance');
+        $this->engine->detachAppliance($pin);
 
         return redirect()->route('user.devices.show', $device->id)
-            ->with('success', "Pin {$pin->pin_name} appliance settings updated.");
+            ->with('success', "'{$name}' disconnected. The channel is now free.");
     }
 }

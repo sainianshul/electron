@@ -64,15 +64,15 @@
                                 @endif
                             </td>
                             <td>
-                                <span class="badge bg-dark-lt">{{ $device->pins->count() }} Pins</span>
+                                <span class="badge bg-azure-lt">{{ $device->pins->where('is_assigned', true)->count() }} / {{ $device->pins->count() }} Appliances</span>
                             </td>
                             <td>
                                 <span class="text-secondary">{{ $device->created_at->format('d M Y') }}</span>
                             </td>
                             <td class="text-end">
                                 <div class="d-flex gap-1 justify-content-end">
-                                    <a href="{{ route('user.devices.show', $device->id) }}" class="btn btn-icon btn-sm btn-outline-primary" data-bs-toggle="tooltip" title="Control & Pins">
-                                        <i class="ti ti-eye"></i>
+                                    <a href="{{ route('user.devices.show', $device->id) }}" class="btn btn-icon btn-sm btn-outline-primary" data-bs-toggle="tooltip" title="Manage Appliances">
+                                        <i class="ti ti-plug"></i>
                                     </a>
                                     <a href="{{ route('user.devices.edit', $device->id) }}" class="btn btn-icon btn-sm btn-outline-warning" data-bs-toggle="tooltip" title="Edit">
                                         <i class="ti ti-pencil"></i>

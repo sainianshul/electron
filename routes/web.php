@@ -71,6 +71,15 @@ Route::middleware(['auth'])->group(function () {
     // User Dashboard
     Route::get('dashboard', [\App\Http\Controllers\User\DashboardController::class, 'index'])->name('user.dashboard');
 
+    // User Appliances Management (Box UI)
+    Route::prefix('appliances')->name('user.appliances.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\User\ApplianceController::class, 'index'])->name('index');
+        Route::post('/', [\App\Http\Controllers\User\ApplianceController::class, 'store'])->name('store');
+        Route::get('/check-availability', [\App\Http\Controllers\User\ApplianceController::class, 'checkAvailability'])->name('check-availability');
+        Route::post('/{pin}/toggle', [\App\Http\Controllers\User\ApplianceController::class, 'toggle'])->name('toggle');
+        Route::delete('/{pin}', [\App\Http\Controllers\User\ApplianceController::class, 'detach'])->name('detach');
+    });
+
     // User Devices Management
     Route::prefix('devices')->name('user.devices.')->group(function () {
         Route::get('/', [\App\Http\Controllers\User\DeviceController::class, 'index'])->name('index');
@@ -83,6 +92,8 @@ Route::middleware(['auth'])->group(function () {
 
         // Pin Control & Appliance Assignment
         Route::post('/{device}/pins/{pin}/toggle', [\App\Http\Controllers\User\DeviceController::class, 'togglePin'])->name('pins.toggle');
+        Route::post('/{device}/appliances', [\App\Http\Controllers\User\DeviceController::class, 'attachAppliance'])->name('appliances.attach');
+        Route::delete('/{device}/pins/{pin}/detach', [\App\Http\Controllers\User\DeviceController::class, 'detachAppliance'])->name('pins.detach');
         Route::post('/{device}/pins/{pin}/assign', [\App\Http\Controllers\User\DeviceController::class, 'assignPin'])->name('pins.assign');
     });
 
