@@ -242,17 +242,9 @@
 
     {{-- Main Section: Smart Home Appliances Grid --}}
     <div class="d-flex align-items-center justify-content-between mb-3">
-        <div>
-            <h3 class="m-0 fw-bold d-flex align-items-center gap-2">
-                <i class="ti ti-switch text-primary"></i>Appliances & Switches
-            </h3>
-            <div class="text-secondary small">Toggle any appliance switch below for instant control.</div>
-        </div>
-        <div>
-            <a href="{{ route('user.devices.index') }}" class="btn btn-sm btn-outline-primary" style="border-radius: 8px;">
-                <i class="ti ti-plus me-1"></i>Add Appliance via Boards
-            </a>
-        </div>
+        <h3 class="m-0 fw-bold d-flex align-items-center gap-2">
+            <i class="ti ti-switch text-primary"></i>Appliances & Switches
+        </h3>
     </div>
 
     @if($assignedPins->isEmpty())
@@ -404,15 +396,12 @@
         </div>
     @endif
 
-    {{-- Bottom Section: Smart Boards List (Where User Adds Appliances) --}}
+    {{-- Bottom Section: Smart Boards List --}}
     <div class="d-flex align-items-center justify-content-between mb-3 mt-4">
-        <div>
-            <h3 class="m-0 fw-bold d-flex align-items-center gap-2">
-                <i class="ti ti-cpu text-primary"></i>My Smart Boards
-            </h3>
-            <div class="text-secondary small">Click any board to manage connected appliances and channels.</div>
-        </div>
-        <a href="{{ route('user.devices.index') }}" class="text-secondary small">View All Boards →</a>
+        <h3 class="m-0 fw-bold d-flex align-items-center gap-2">
+            <i class="ti ti-cpu text-primary"></i>My Smart Boards
+        </h3>
+        <a href="{{ route('user.devices.index') }}" class="btn btn-sm btn-outline-secondary" style="border-radius: 8px;">View All Boards →</a>
     </div>
 
     <div class="row row-cards">
@@ -424,41 +413,61 @@
                 $pct = $totalPins > 0 ? round(($assignedCount / $totalPins) * 100) : 0;
             @endphp
             <div class="col-md-6 col-lg-4">
-                <div class="card apple-stat-card">
-                    <div class="card-header d-flex justify-content-between align-items-center py-2">
-                        <div class="d-flex align-items-center">
-                            <span class="avatar avatar-sm bg-primary-lt me-2" style="border-radius: 8px;">
-                                <i class="ti ti-cpu fs-3"></i>
-                            </span>
-                            <div>
-                                <h4 class="card-title m-0">{{ $device->name }}</h4>
-                                <small class="text-secondary font-monospace">{{ $device->mac_address }}</small>
+                <div class="card apple-stat-card h-100" style="border-radius: 18px; border: 1.5px solid rgba(0, 0, 0, 0.07); overflow: hidden;">
+                    <div class="card-body p-4 d-flex flex-column justify-content-between">
+                        <div>
+                            {{-- Board Header: Icon + Name + Status --}}
+                            <div class="d-flex align-items-start justify-content-between mb-3">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="apple-icon-circle {{ $device->is_online ? 'bg-success-lt text-success' : 'bg-primary-lt text-primary' }}" style="width: 46px; height: 46px; border-radius: 14px;">
+                                        <i class="ti ti-cpu fs-2"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="fw-bold m-0" style="font-size: 16px;">{{ $device->name }}</h4>
+                                        <span class="badge bg-secondary-lt font-monospace text-uppercase mt-1" style="border-radius: 6px; font-size: 11px;">
+                                            {{ $device->mac_address }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                @if($device->is_online)
+                                    <span class="badge bg-success-lt fw-bold px-2 py-1" style="border-radius: 100px;">
+                                        <span class="pulse-dot online" style="margin-right: 4px;"></span>Online
+                                    </span>
+                                @else
+                                    <span class="badge bg-secondary-lt fw-semibold px-2 py-1" style="border-radius: 100px;">
+                                        <span class="pulse-dot offline" style="margin-right: 4px;"></span>Offline
+                                    </span>
+                                @endif
+                            </div>
+
+                            {{-- Capacity & Channels Mini Stats --}}
+                            <div class="p-3 my-3" style="background: rgba(148, 163, 184, 0.08); border-radius: 14px;">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="small text-secondary fw-bold" style="letter-spacing: 0.5px; font-size: 11px;">
+                                        CHANNELS CAPACITY
+                                    </span>
+                                    <span class="fw-bold font-monospace small" style="color: var(--tblr-primary, #206bc4);">
+                                        {{ $assignedCount }} / {{ $totalPins }} Used
+                                    </span>
+                                </div>
+                                <div class="progress" style="height: 7px; border-radius: 10px; background: rgba(148, 163, 184, 0.2);">
+                                    <div class="progress-bar bg-primary" style="width: {{ $pct }}%; border-radius: 10px;"></div>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mt-2 small text-secondary">
+                                    <span><strong class="text-success">{{ $assignedCount }}</strong> attached</span>
+                                    <span><strong class="text-primary">{{ $freeCount }}</strong> available</span>
+                                </div>
                             </div>
                         </div>
-                        <div>
-                            @if($device->is_online)
-                                <span class="badge bg-success-lt" style="border-radius: 6px;"><i class="ti ti-wifi me-1"></i>Online</span>
-                            @else
-                                <span class="badge bg-secondary-lt" style="border-radius: 6px;"><i class="ti ti-wifi-off me-1"></i>Offline</span>
-                            @endif
-                        </div>
-                    </div>
 
-                    <div class="card-body p-3">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="text-secondary small fw-bold">CHANNELS IN USE</span>
-                            <span class="badge bg-azure-lt" style="border-radius: 6px;">{{ $assignedCount }} / {{ $totalPins }} Attached</span>
+                        {{-- Card Footer Action --}}
+                        <div class="pt-3 d-flex justify-content-between align-items-center border-top">
+                            <span class="small text-secondary font-monospace">{{ $device->model ?? 'NodeMCU ESP8266' }}</span>
+                            <a href="{{ route('user.devices.show', $device->id) }}" class="btn btn-sm btn-outline-primary fw-bold" style="border-radius: 10px; padding: 6px 14px;">
+                                Manage Board <i class="ti ti-arrow-right ms-1"></i>
+                            </a>
                         </div>
-                        <div class="progress progress-sm" style="height: 6px; border-radius: 4px;">
-                            <div class="progress-bar bg-primary" style="width: {{ $pct }}%"></div>
-                        </div>
-                    </div>
-
-                    <div class="card-footer bg-light-subtle d-flex justify-content-between align-items-center py-2">
-                        <span class="small text-secondary">{{ $freeCount }} channels free</span>
-                        <a href="{{ route('user.devices.show', $device->id) }}" class="btn btn-sm btn-primary" style="border-radius: 8px;">
-                            <i class="ti ti-plus me-1"></i>Manage & Add Appliances
-                        </a>
                     </div>
                 </div>
             </div>
