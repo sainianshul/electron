@@ -11,8 +11,11 @@ class AuthController extends Controller
 {
     public function showLogin()
     {
-        if (Auth::guard('web')->check() && Auth::user()->status == User::STATUS_ACTIVE && Auth::user()->isAdmin()) {
-            return redirect()->route('admin.dashboard');
+        if (Auth::guard('web')->check() && Auth::user()->isActive()) {
+            if (Auth::user()->isAdmin()) {
+                return redirect()->route('admin.dashboard');
+            }
+            return redirect()->route('user.dashboard');
         }
 
         return view('admin.auth.login');
@@ -35,27 +38,23 @@ class AuthController extends Controller
 
         $user = Auth::user();
 
-        // Role check
-        if (!$user->isAdmin()) {
-            Auth::logout();
-            return back()
-                ->withInput($request->only('email', 'remember'))
-                ->withErrors(['email' => 'You do not have admin access.']);
-        }
-
         // Status check
         if (!$user->isActive()) {
             Auth::logout();
             return back()
                 ->withInput($request->only('email', 'remember'))
-                ->withErrors(['email' => 'Your account is inactive or blocked.']);
+                ->withErrors(['email' => 'Your account is inactive or blocked. Please contact support.']);
         }
 
         $user->update(['last_login_at' => now()]);
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('admin.dashboard'));
+        if ($user->isAdmin()) {
+            return redirect()->intended(route('admin.dashboard'));
+        }
+
+        return redirect()->intended(route('user.dashboard'));
     }
 
     public function logout(Request $request)

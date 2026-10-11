@@ -28,11 +28,8 @@ class AdminMiddleware
             abort(403, 'Your account is not active. Please contact the administrator.');
         }
 
-        if (auth()->guard('web')->user()->role !== User::ROLE_ADMIN) {
-            auth()->guard('web')->logout();
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
-            abort(403, 'Unauthorized Access');
+        if (!auth()->guard('web')->user()->isAdmin()) {
+            return redirect()->route('user.dashboard')->with('error', 'Unauthorized: Admin privileges required.');
         }
 
         return $next($request);

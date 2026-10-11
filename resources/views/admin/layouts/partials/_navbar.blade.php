@@ -16,15 +16,17 @@
             </div>
             <div class="nav-item dropdown">
                 <a href="#" class="nav-link d-flex lh-1 text-reset p-0" data-bs-toggle="dropdown" aria-label="Open user menu">
-                    <span class="avatar avatar-sm" style="background-image: url('https://ui-avatars.com/api/?name=Admin')"></span>
+                    <span class="avatar avatar-sm">{!! auth()->user()->avatar_html ?? '<i class="ti ti-user"></i>' !!}</span>
                     <div class="d-none d-xl-block ps-2">
-                        <div>{{ auth()->user()->name ?? 'Admin' }}</div>
-                        <div class="mt-1 small text-secondary">Administrator</div>
+                        <div>{{ auth()->user()->name ?? 'User' }}</div>
+                        <div class="mt-1 small text-secondary">{{ auth()->user()->isAdmin() ? 'Administrator' : 'User' }}</div>
                     </div>
                 </a>
                 <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
-                    <a href="{{ route('admin.profile.index') }}" class="dropdown-item">Profile</a>
-                    <div class="dropdown-divider"></div>
+                    @if(auth()->user()->isAdmin())
+                        <a href="{{ route('admin.profile.index') }}" class="dropdown-item">Profile</a>
+                        <div class="dropdown-divider"></div>
+                    @endif
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
                         <button type="submit" class="dropdown-item">Logout</button>
