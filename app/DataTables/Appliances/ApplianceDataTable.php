@@ -24,18 +24,13 @@ class ApplianceDataTable extends DataTable
                     $avatar = '<span class="avatar avatar-sm me-2" style="background-image: url(' . e($appliance->image_url) . ')"></span>';
                 } else {
                     $iconClass = $appliance->icon ?: 'ti ti-plug';
-                    $avatar = '<span class="avatar avatar-sm bg-purple-lt me-2"><i class="' . e($iconClass) . ' fs-3"></i></span>';
+                    $avatar = '<span class="avatar avatar-sm bg-primary-lt me-2"><i class="' . e($iconClass) . ' fs-3"></i></span>';
                 }
-
-                $signalText = '<small class="text-secondary d-block font-monospace">' . e($appliance->signal_type) . ' • ' . e($appliance->type) . '</small>';
 
                 return '
                     <div class="d-flex align-items-center">
                         <a href="' . $showUrl . '" class="d-block">' . $avatar . '</a>
-                        <div>
-                            <a href="' . $showUrl . '" class="fw-semibold text-reset text-decoration-none">' . e($appliance->name) . '</a>
-                            ' . $signalText . '
-                        </div>
+                        <a href="' . $showUrl . '" class="fw-semibold text-reset text-decoration-none">' . e($appliance->name) . '</a>
                     </div>
                 ';
             })
@@ -43,17 +38,17 @@ class ApplianceDataTable extends DataTable
             // ── Type (Input / Output) ─────────────────────────────────
             ->editColumn('type', function (Appliance $appliance) {
                 if ($appliance->type === Appliance::TYPE_INPUT) {
-                    return '<span class="badge bg-teal-lt">Input</span>';
+                    return '<span class="badge badge-outline text-teal">Input</span>';
                 }
-                return '<span class="badge bg-blue-lt">Output</span>';
+                return '<span class="badge badge-outline text-primary">Output</span>';
             })
 
             // ── Signal Type ───────────────────────────────────────────
             ->editColumn('signal_type', function (Appliance $appliance) {
                 return match ($appliance->signal_type) {
-                    Appliance::SIGNAL_PWM => '<span class="badge bg-azure-lt">PWM</span>',
-                    Appliance::SIGNAL_ANALOG => '<span class="badge bg-orange-lt">Analog</span>',
-                    default => '<span class="badge bg-cyan-lt">Digital</span>',
+                    Appliance::SIGNAL_PWM => '<span class="badge badge-outline text-azure">PWM</span>',
+                    Appliance::SIGNAL_ANALOG => '<span class="badge badge-outline text-orange">Analog</span>',
+                    default => '<span class="badge badge-outline text-cyan">Digital</span>',
                 };
             })
 
@@ -64,7 +59,7 @@ class ApplianceDataTable extends DataTable
                     return '<span class="text-secondary small">Any</span>';
                 }
                 $badges = array_map(function ($pin) {
-                    return '<span class="badge bg-dark-lt text-uppercase font-monospace me-1">' . e($pin) . '</span>';
+                    return '<span class="badge badge-outline text-secondary text-uppercase font-monospace me-1">' . e($pin) . '</span>';
                 }, $pins);
 
                 return implode('', $badges);

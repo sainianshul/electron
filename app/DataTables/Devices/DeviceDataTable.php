@@ -26,17 +26,13 @@ class DeviceDataTable extends DataTable
             })
             ->editColumn('name', function (Device $device) {
                 $showUrl = route('admin.devices.show', $device->id);
-                $desc = $device->description ? '<small class="text-secondary d-block text-truncate" style="max-width: 180px;">' . e($device->description) . '</small>' : '';
 
                 return '
                     <div class="d-flex align-items-center">
                         <span class="avatar avatar-sm bg-primary-lt me-2">
                             <i class="ti ti-cpu fs-3"></i>
                         </span>
-                        <div>
-                            <a href="' . $showUrl . '" class="fw-semibold text-reset text-decoration-none">' . e($device->name) . '</a>
-                            ' . $desc . '
-                        </div>
+                        <a href="' . $showUrl . '" class="fw-semibold text-reset text-decoration-none">' . e($device->name) . '</a>
                     </div>
                 ';
             })
@@ -47,19 +43,12 @@ class DeviceDataTable extends DataTable
                     return '<span class="text-secondary">—</span>';
                 }
                 $userUrl = route('admin.users.show', $device->user->id);
-                return '
-                    <div>
-                        <a href="' . $userUrl . '" class="text-reset fw-medium text-decoration-none">
-                            ' . e($device->user->name) . '
-                        </a>
-                        <div class="text-secondary small">' . e($device->user->phone ?? '') . '</div>
-                    </div>
-                ';
+                return '<a href="' . $userUrl . '" class="text-reset fw-medium text-decoration-none">' . e($device->user->name) . '</a>';
             })
 
             // ── MAC Address ───────────────────────────────────────────
             ->editColumn('mac_address', function (Device $device) {
-                return '<span class="badge bg-purple-lt font-monospace text-uppercase"><i class="ti ti-binary me-1"></i>' . e($device->mac_address) . '</span>';
+                return '<span class="font-monospace text-secondary text-uppercase">' . e($device->mac_address) . '</span>';
             })
 
             // ── IP Address ────────────────────────────────────────────
@@ -72,9 +61,9 @@ class DeviceDataTable extends DataTable
             // ── Online / Connectivity ─────────────────────────────────
             ->editColumn('is_online', function (Device $device) {
                 if ($device->is_online) {
-                    return '<span class="badge bg-success-lt"><i class="ti ti-wifi me-1"></i>Online</span>';
+                    return '<span class="badge badge-outline text-success"><i class="ti ti-wifi me-1"></i>Online</span>';
                 }
-                return '<span class="badge bg-secondary-lt"><i class="ti ti-wifi-off me-1"></i>Offline</span>';
+                return '<span class="badge badge-outline text-secondary"><i class="ti ti-wifi-off me-1"></i>Offline</span>';
             })
 
             // ── Status ────────────────────────────────────────────────
