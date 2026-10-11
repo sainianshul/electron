@@ -92,6 +92,49 @@
     .pulse-dot.offline {
         background-color: #a8aeb7;
     }
+
+    /* Apple Style PWM Range Slider */
+    .pwm-slider-container {
+        width: 100%;
+        padding: 4px 0;
+    }
+    .pwm-slider {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 100%;
+        height: 8px;
+        border-radius: 999px;
+        background: linear-gradient(to right, #0284c7 var(--pwm-percent, 0%), rgba(148, 163, 184, 0.25) var(--pwm-percent, 0%));
+        outline: none;
+        cursor: pointer;
+        transition: background 0.1s ease;
+    }
+    .pwm-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: #ffffff;
+        border: 2.5px solid #0284c7;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+        cursor: pointer;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .pwm-slider::-webkit-slider-thumb:hover,
+    .pwm-slider:active::-webkit-slider-thumb {
+        transform: scale(1.15);
+        box-shadow: 0 0 14px rgba(2, 132, 199, 0.55);
+    }
+    .pwm-slider::-moz-range-thumb {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: #ffffff;
+        border: 2.5px solid #0284c7;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+        cursor: pointer;
+    }
 </style>
 @endpush
 
@@ -248,7 +291,7 @@
                     <div class="card appliance-box {{ $isOn ? 'is-on' : 'is-off' }}" id="card-pin-{{ $pin->id }}">
                         <div class="card-body p-3">
                             
-                            {{-- Card Top: Icon + Board Pill --}}
+                            {{-- Card Top: Icon + Board Pill + Hardware Pin Badge --}}
                             <div class="d-flex align-items-start justify-content-between mb-3">
                                 <div class="d-flex align-items-center gap-2">
                                     <div class="appliance-icon-wrapper" id="icon-wrapper-{{ $pin->id }}">
@@ -259,8 +302,13 @@
                                         @endif
                                     </div>
                                     <div>
-                                        <div class="badge bg-secondary-lt font-monospace text-truncate" style="max-width: 125px; border-radius: 6px;">
+                                        <div class="badge bg-secondary-lt font-monospace text-truncate mb-1" style="max-width: 125px; border-radius: 6px;">
                                             <i class="ti ti-cpu me-1"></i>{{ $pin->device->name }}
+                                        </div>
+                                        <div>
+                                            <span class="badge bg-azure-lt font-monospace fw-bold" style="border-radius: 6px; font-size: 11px;">
+                                                <i class="ti ti-circuit-switch me-1"></i>Pin {{ $pin->pin_name }}
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
@@ -277,32 +325,77 @@
                                 <div class="text-secondary small">{{ $pin->appliance->name ?? 'Smart Appliance' }}</div>
                             </div>
 
-                            {{-- Live Status Indicator & Switch Bar --}}
-                            <div class="d-flex align-items-center justify-content-between pt-2 border-top">
-                                <div>
-                                    <div class="status-indicator-text" id="status-text-{{ $pin->id }}">
-                                        @if($isOn)
-                                            <span class="text-success fw-semibold small d-flex align-items-center">
-                                                <span class="pulse-dot online"></span>RUNNING (ON)
-                                            </span>
-                                        @else
-                                            <span class="text-secondary small d-flex align-items-center">
-                                                <span class="pulse-dot offline"></span>OFF
-                                            </span>
-                                        @endif
+                            @if($pin->pin_type === 'PWM')
+                                @php
+                                    $pwmVal = (int)$pin->current_state;
+                                    $pwmPct = round(($pwmVal / 255) * 100);
+                                @endphp
+                                {{-- PWM Slider Control Bar --}}
+                                <div class="pt-2 border-top">
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <div class="status-indicator-text" id="status-text-{{ $pin->id }}">
+                                            @if($isOn)
+                                                <span class="text-success fw-semibold small d-flex align-items-center">
+                                                    <span class="pulse-dot online"></span>RUNNING (<span id="pwm-pct-text-{{ $pin->id }}">{{ $pwmPct }}%</span>)
+                                                </span>
+                                            @else
+                                                <span class="text-secondary small d-flex align-items-center">
+                                                    <span class="pulse-dot offline"></span>OFF (0%)
+                                                </span>
+                                            @endif
+                                        </div>
+                                        <span class="badge bg-purple-lt font-monospace fw-bold" id="pwm-badge-{{ $pin->id }}">
+                                            {{ $pwmPct }}%
+                                        </span>
                                     </div>
-                                </div>
 
-                                {{-- The ON/OFF Switch --}}
-                                <div class="power-switch-lg">
-                                    <label class="form-check form-switch m-0">
-                                        <input class="form-check-input appliance-toggle" type="checkbox"
+                                    <div class="d-flex align-items-center gap-2">
+                                        <button type="button" class="btn btn-icon btn-sm {{ $isOn ? 'btn-success' : 'btn-ghost-secondary' }} pwm-quick-toggle"
                                             data-pin-id="{{ $pin->id }}"
                                             data-name="{{ $pin->custom_name ?: ($pin->appliance->name ?? 'Appliance') }}"
-                                            {{ $isOn ? 'checked' : '' }}>
-                                    </label>
+                                            title="{{ $isOn ? 'Turn OFF' : 'Turn ON' }}"
+                                            style="width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;"
+                                            id="pwm-power-btn-{{ $pin->id }}">
+                                            <i class="ti ti-power"></i>
+                                        </button>
+                                        <div class="pwm-slider-container flex-grow-1">
+                                            <input type="range" class="pwm-slider" min="0" max="255" step="5"
+                                                value="{{ $pwmVal }}"
+                                                data-pin-id="{{ $pin->id }}"
+                                                data-name="{{ $pin->custom_name ?: ($pin->appliance->name ?? 'Appliance') }}"
+                                                id="pwm-slider-{{ $pin->id }}"
+                                                style="--pwm-percent: {{ $pwmPct }}%;">
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
+                            @else
+                                {{-- Live Status Indicator & Digital Switch Bar --}}
+                                <div class="d-flex align-items-center justify-content-between pt-2 border-top">
+                                    <div>
+                                        <div class="status-indicator-text" id="status-text-{{ $pin->id }}">
+                                            @if($isOn)
+                                                <span class="text-success fw-semibold small d-flex align-items-center">
+                                                    <span class="pulse-dot online"></span>RUNNING (ON)
+                                                </span>
+                                            @else
+                                                <span class="text-secondary small d-flex align-items-center">
+                                                    <span class="pulse-dot offline"></span>OFF
+                                                </span>
+                                            @endif
+                                        </div>
+                                    </div>
+
+                                    {{-- The ON/OFF Switch --}}
+                                    <div class="power-switch-lg">
+                                        <label class="form-check form-switch m-0">
+                                            <input class="form-check-input appliance-toggle" type="checkbox"
+                                                data-pin-id="{{ $pin->id }}"
+                                                data-name="{{ $pin->custom_name ?: ($pin->appliance->name ?? 'Appliance') }}"
+                                                {{ $isOn ? 'checked' : '' }}>
+                                        </label>
+                                    </div>
+                                </div>
+                            @endif
 
                         </div>
                     </div>
@@ -427,12 +520,79 @@
             });
         });
 
+        // ── PWM Slider Real-time Input & Change Handlers ──────────────
+        $(document).on('input', '.pwm-slider', function () {
+            let $slider = $(this);
+            let pinId = $slider.data('pin-id');
+            let val = parseInt($slider.val(), 10);
+            let pct = Math.round((val / 255) * 100);
+
+            $slider.css('--pwm-percent', pct + '%');
+            $('#pwm-badge-' + pinId).text(pct + '%');
+            $('#pwm-pct-text-' + pinId).text(pct + '%');
+
+            let $card = $('#card-pin-' + pinId);
+            let $powerBtn = $('#pwm-power-btn-' + pinId);
+            let $statusText = $('#status-text-' + pinId);
+
+            if (val > 0) {
+                $card.removeClass('is-off').addClass('is-on');
+                $powerBtn.removeClass('btn-ghost-secondary').addClass('btn-success');
+                $statusText.html('<span class="text-success fw-semibold small d-flex align-items-center"><span class="pulse-dot online"></span>RUNNING (<span id="pwm-pct-text-' + pinId + '">' + pct + '%</span>)</span>');
+            } else {
+                $card.removeClass('is-on').addClass('is-off');
+                $powerBtn.removeClass('btn-success').addClass('btn-ghost-secondary');
+                $statusText.html('<span class="text-secondary small d-flex align-items-center"><span class="pulse-dot offline"></span>OFF (0%)</span>');
+            }
+        });
+
+        $(document).on('change', '.pwm-slider', function () {
+            let $slider = $(this);
+            let pinId = $slider.data('pin-id');
+            let applianceName = $slider.data('name');
+            let val = $slider.val();
+
+            $.ajax({
+                url: '/appliances/' + pinId + '/toggle',
+                type: 'POST',
+                data: { state: val, _token: '{{ csrf_token() }}' },
+                success: function (res) {
+                    showToast(applianceName + ' level set to ' + Math.round((val / 255) * 100) + '%', 'success');
+                    updateStats();
+                },
+                error: function () {
+                    showToast('Failed to update ' + applianceName, 'error');
+                }
+            });
+        });
+
+        // ── PWM Quick Power Toggle Button ──────────────────────────────
+        $(document).on('click', '.pwm-quick-toggle', function () {
+            let $btn = $(this);
+            let pinId = $btn.data('pin-id');
+            let applianceName = $btn.data('name');
+            let $slider = $('#pwm-slider-' + pinId);
+            let currentVal = parseInt($slider.val(), 10);
+            let newVal = (currentVal > 0) ? 0 : 255;
+
+            $slider.val(newVal).trigger('input').trigger('change');
+        });
+
         function updateStats() {
-            let total = $('.appliance-toggle').length;
-            let on = $('.appliance-toggle:checked').length;
-            let off = total - on;
-            $('#stat-on').text(on);
-            $('#stat-off').text(off);
+            let digitalTotal = $('.appliance-toggle').length;
+            let digitalOn = $('.appliance-toggle:checked').length;
+
+            let pwmTotal = $('.pwm-slider').length;
+            let pwmOn = $('.pwm-slider').filter(function () {
+                return parseInt($(this).val(), 10) > 0;
+            }).length;
+
+            let totalOn = digitalOn + pwmOn;
+            let totalAll = digitalTotal + pwmTotal;
+            let totalOff = totalAll - totalOn;
+
+            $('#stat-on').text(totalOn);
+            $('#stat-off').text(totalOff);
         }
 
     });
