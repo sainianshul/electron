@@ -88,6 +88,15 @@
                         </a>
                     </li>
 
+                    <li class="nav-item {{ request()->routeIs('user.appliances.*') ? 'active' : '' }}">
+                        <a class="nav-link" href="{{ route('user.appliances.index') }}">
+                            <span class="nav-link-icon d-md-none d-lg-inline-block">
+                                <i class="ti ti-switch"></i>
+                            </span>
+                            <span class="nav-link-title">Appliances Control (Box UI)</span>
+                        </a>
+                    </li>
+
                     <li class="nav-item {{ request()->routeIs('admin.appliances.*') ? 'active' : '' }}">
                         <a class="nav-link" href="{{ route('admin.appliances.index') }}">
                             <span class="nav-link-icon d-md-none d-lg-inline-block">

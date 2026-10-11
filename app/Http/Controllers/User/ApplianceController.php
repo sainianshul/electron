@@ -25,10 +25,14 @@ class ApplianceController extends Controller
     public function index()
     {
         $user = auth()->user();
-        $devices = $user->devices()->with(['pins.appliance'])->latest()->get();
+        
+        $devices = $user->isAdmin()
+            ? Device::with(['pins.appliance', 'user'])->latest()->get()
+            : $user->devices()->with(['pins.appliance'])->latest()->get();
+
         $hasDevices = $devices->isNotEmpty();
 
-        // If user has no devices, return the view immediately showing the empty state
+        // If no devices exist, return view with empty state
         if (!$hasDevices) {
             return view('user.appliances.index', [
                 'hasDevices' => false,
@@ -39,16 +43,19 @@ class ApplianceController extends Controller
                     'total' => 0,
                     'active' => 0,
                     'offline' => 0,
+                    'devices_count' => 0,
                 ],
             ]);
         }
 
-        // Fetch all assigned appliances across all user's devices
-        $assignedPins = DevicePin::whereHas('device', function ($q) use ($user) {
-            $q->where('user_id', $user->id);
-        })
-            ->where('is_assigned', true)
-            ->with(['appliance', 'device'])
+        // Fetch assigned appliances (all devices if admin, otherwise user devices)
+        $assignedPins = DevicePin::where('is_assigned', true)
+            ->when(!$user->isAdmin(), function ($q) use ($user) {
+                $q->whereHas('device', function ($dq) use ($user) {
+                    $dq->where('user_id', $user->id);
+                });
+            })
+            ->with(['appliance', 'device.user'])
             ->latest('updated_at')
             ->get();
 
@@ -89,7 +96,10 @@ class ApplianceController extends Controller
             'appliance_id' => ['required', 'integer'],
         ]);
 
-        $device = auth()->user()->devices()->findOrFail($request->device_id);
+        $device = auth()->user()->isAdmin()
+            ? Device::findOrFail($request->device_id)
+            : auth()->user()->devices()->findOrFail($request->device_id);
+
         $appliance = Appliance::where('status', Appliance::STATUS_ACTIVE)->findOrFail($request->appliance_id);
 
         $result = $this->engine->checkSlotAvailability($device, $appliance);
@@ -108,7 +118,10 @@ class ApplianceController extends Controller
             'custom_name' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $device = auth()->user()->devices()->findOrFail($request->device_id);
+        $device = auth()->user()->isAdmin()
+            ? Device::findOrFail($request->device_id)
+            : auth()->user()->devices()->findOrFail($request->device_id);
+
         $appliance = Appliance::findOrFail($request->appliance_id);
 
         try {
@@ -143,7 +156,8 @@ class ApplianceController extends Controller
      */
     public function toggle(Request $request, DevicePin $pin)
     {
-        abort_if($pin->device->user_id !== auth()->id(), 403, 'Unauthorized.');
+        $user = auth()->user();
+        abort_if(!$user->isAdmin() && $pin->device->user_id !== $user->id, 403, 'Unauthorized.');
 
         $result = $this->engine->toggleState($pin, $request->input('state'));
 
@@ -155,7 +169,8 @@ class ApplianceController extends Controller
      */
     public function detach(Request $request, DevicePin $pin)
     {
-        abort_if($pin->device->user_id !== auth()->id(), 403, 'Unauthorized.');
+        $user = auth()->user();
+        abort_if(!$user->isAdmin() && $pin->device->user_id !== $user->id, 403, 'Unauthorized.');
 
         $name = $pin->custom_name ?: ($pin->appliance->name ?? 'Appliance');
         $deviceName = $pin->device->name;

@@ -49,6 +49,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::prefix('devices')->name('devices.')->group(function () {
         Route::get('data', [\App\Http\Controllers\Admin\DeviceController::class, 'data'])->name('data');
         Route::post('{device}/status', [\App\Http\Controllers\Admin\DeviceController::class, 'updateStatus'])->name('update-status');
+        Route::post('{device}/pins/{pin}/toggle', [\App\Http\Controllers\Admin\DeviceController::class, 'togglePin'])->name('pins.toggle');
+        Route::post('{device}/appliances', [\App\Http\Controllers\Admin\DeviceController::class, 'attachAppliance'])->name('appliances.attach');
+        Route::delete('{device}/pins/{pin}/detach', [\App\Http\Controllers\Admin\DeviceController::class, 'detachAppliance'])->name('pins.detach');
     });
     Route::resource('devices', \App\Http\Controllers\Admin\DeviceController::class);
 
