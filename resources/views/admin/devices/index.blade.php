@@ -131,9 +131,15 @@
 
 @endsection
 
-@push('scripts')
+@push('datatables_css')
+    @include('admin.layouts.partials._datatable-cdn-css')
+@endpush
+
+@push('datatables_js')
+    @include('admin.layouts.partials._datatable-cdn-js')
+
     <script>
-        $(document).ready(function () {
+        $(function () {
 
             let table = $('#devices-table').DataTable({
                 processing: false,
@@ -148,13 +154,13 @@
 
                 columns: [
                     { data: null, name: 'id', render: function (data, type, row, meta) { return meta.row + meta.settings._iDisplayStart + 1; }, orderable: false, searchable: false },
-                    { data: 'name', name: 'devices.name' },
-                    { data: 'user', name: 'user.name' },
-                    { data: 'mac_address', name: 'devices.mac_address' },
-                    { data: 'ip_address', name: 'devices.ip_address' },
-                    { data: 'is_online', name: 'devices.is_online' },
-                    { data: 'status', name: 'devices.status' },
-                    { data: 'created_at', name: 'devices.created_at' },
+                    { data: 'name', name: 'name' },
+                    { data: 'user', name: 'user', orderable: false, searchable: false },
+                    { data: 'mac_address', name: 'mac_address' },
+                    { data: 'ip_address', name: 'ip_address' },
+                    { data: 'is_online', name: 'is_online' },
+                    { data: 'status', name: 'status' },
+                    { data: 'created_at', name: 'created_at' },
                     { data: 'actions', name: 'actions', orderable: false, searchable: false, className: 'text-end' },
                 ],
 

@@ -70,7 +70,7 @@ class DeviceDataTable extends DataTable
             })
 
             // ── Online / Connectivity ─────────────────────────────────
-            ->addColumn('is_online', function (Device $device) {
+            ->editColumn('is_online', function (Device $device) {
                 if ($device->is_online) {
                     return '<span class="badge bg-success-lt"><i class="ti ti-wifi me-1"></i>Online</span>';
                 }
@@ -78,7 +78,7 @@ class DeviceDataTable extends DataTable
             })
 
             // ── Status ────────────────────────────────────────────────
-            ->addColumn('status', function (Device $device) {
+            ->editColumn('status', function (Device $device) {
                 $color = $device->status_color;
                 return '
                     <a href="javascript:void(0)" class="badge badge-outline text-' . $color . ' status-modal-btn text-decoration-none" data-id="' . $device->id . '" data-status="' . $device->status . '">

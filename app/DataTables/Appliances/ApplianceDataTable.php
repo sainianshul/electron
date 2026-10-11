@@ -71,7 +71,7 @@ class ApplianceDataTable extends DataTable
             })
 
             // ── Status ────────────────────────────────────────────────
-            ->addColumn('status', function (Appliance $appliance) {
+            ->editColumn('status', function (Appliance $appliance) {
                 $color = $appliance->status_color;
                 return '
                     <a href="javascript:void(0)" class="badge badge-outline text-' . $color . ' status-modal-btn text-decoration-none" data-id="' . $appliance->id . '" data-status="' . $appliance->status . '">
@@ -126,18 +126,20 @@ class ApplianceDataTable extends DataTable
 
     public function query(Appliance $model)
     {
-        $query = $model->newQuery()->latest();
+        $query = $model->newQuery()
+            ->select('appliances.*')
+            ->latest();
 
         if (request()->filled('status')) {
-            $query->where('status', request('status'));
+            $query->where('appliances.status', request('status'));
         }
 
         if (request()->filled('type')) {
-            $query->where('type', request('type'));
+            $query->where('appliances.type', request('type'));
         }
 
         if (request()->filled('signal_type')) {
-            $query->where('signal_type', request('signal_type'));
+            $query->where('appliances.signal_type', request('signal_type'));
         }
 
         return $query;

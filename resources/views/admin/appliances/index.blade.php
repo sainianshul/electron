@@ -139,9 +139,15 @@
 
 @endsection
 
-@push('scripts')
+@push('datatables_css')
+    @include('admin.layouts.partials._datatable-cdn-css')
+@endpush
+
+@push('datatables_js')
+    @include('admin.layouts.partials._datatable-cdn-js')
+
     <script>
-        $(document).ready(function () {
+        $(function () {
 
             let table = $('#appliances-table').DataTable({
                 processing: false,
@@ -160,7 +166,7 @@
                     { data: 'name', name: 'name' },
                     { data: 'type', name: 'type' },
                     { data: 'signal_type', name: 'signal_type' },
-                    { data: 'supported_pin_types', name: 'supported_pin_types', orderable: false },
+                    { data: 'supported_pin_types', name: 'supported_pin_types', orderable: false, searchable: false },
                     { data: 'status', name: 'status' },
                     { data: 'created_at', name: 'created_at' },
                     { data: 'actions', name: 'actions', orderable: false, searchable: false, className: 'text-end' },
