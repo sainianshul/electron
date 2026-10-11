@@ -49,6 +49,18 @@ class MqttService
         $cleanMac = strtoupper(str_replace([':', '-', ' '], '', $device->mac_address));
         $rawMac = $device->mac_address;
 
+        // Resolve physical hardware payload:
+        // Hardware boards with Active-LOW relay energize ON with payload '0' and turn OFF with '1'.
+        // Inverting for digital pins ensures that Dashboard '1' (ON) turns relay ON, and '0' (OFF) turns relay OFF.
+        $hardwareState = $state;
+        if ($pin->pin_type !== 'PWM') {
+            if ($state === '1') {
+                $hardwareState = '0';
+            } elseif ($state === '0') {
+                $hardwareState = '1';
+            }
+        }
+
         // Topics:
         // 1. Direct Pin topic: devices/{mac}/pin/{pin_name}/set
         $pinTopic = "devices/{$rawMac}/pin/{$pin->pin_name}/set";
@@ -58,7 +70,8 @@ class MqttService
         $payload = json_encode([
             'pin' => $pin->pin_name,
             'gpio' => $pin->gpio_number,
-            'state' => $state,
+            'state' => $hardwareState,
+            'ui_state' => $state,
             'appliance' => $pin->custom_name ?: ($pin->appliance->name ?? null),
             'timestamp' => time(),
         ]);
@@ -68,12 +81,12 @@ class MqttService
             $client->connect($this->getConnectionSettings(), true);
 
             // Publish to both topics for maximum firmware compatibility
-            $client->publish($pinTopic, $state, 0);
+            $client->publish($pinTopic, $hardwareState, 0);
             $client->publish($cmdTopic, $payload, 0);
 
             // Also publish to cleanMac topic in case firmware uses unpunctuated MAC
             if ($cleanMac !== $rawMac) {
-                $client->publish("devices/{$cleanMac}/pin/{$pin->pin_name}/set", $state, 0);
+                $client->publish("devices/{$cleanMac}/pin/{$pin->pin_name}/set", $hardwareState, 0);
                 $client->publish("devices/{$cleanMac}/command", $payload, 0);
             }
 
@@ -83,7 +96,8 @@ class MqttService
                 'published' => true,
                 'pin_topic' => $pinTopic,
                 'command_topic' => $cmdTopic,
-                'payload' => $state,
+                'payload' => $hardwareState,
+                'ui_state' => $state,
                 'message' => 'MQTT command published successfully.',
             ];
 
