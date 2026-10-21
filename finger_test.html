@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚡ Live AI Finger & Gesture Tester — Electronia</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+    <!-- MediaPipe Hands & Camera Utils -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+
+    <style>
+        :root {
+            --bg-base: #0B0F17;
+            --bg-card: rgba(18, 25, 38, 0.75);
+            --border-glow: rgba(56, 189, 248, 0.25);
+            --accent-cyan: #38BDF8;
+            --accent-green: #10B981;
+            --accent-purple: #A855F7;
+            --accent-amber: #F59E0B;
+            --text-main: #F8FAFC;
+            --text-muted: #94A3B8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 30px 20px;
+            background-image: 
+                radial-gradient(circle at 20% 20%, rgba(56, 189, 248, 0.08) 0%, transparent 45%),
+                radial-gradient(circle at 80% 80%, rgba(168, 85, 247, 0.07) 0%, transparent 45%);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #38BDF8 0%, #818CF8 50%, #C084FC 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        /* Main Workspace Container */
+        .main-layout {
+            display: flex;
+            flex-direction: row;
+            gap: 24px;
+            max-width: 1050px;
+            width: 100%;
+            align-items: flex-start;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        /* Camera Box */
+        .camera-card {
+            position: relative;
+            background: var(--bg-card);
+            border: 1px solid var(--border-glow);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(12px);
+            width: 640px;
+            max-width: 100%;
+        }
+
+        #webcam {
+            display: none;
+        }
+
+        #output_canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            transform: scaleX(-1); /* Mirror camera */
+        }
+
+        /* Top HUD inside Camera */
+        .hud-overlay {
+            position: absolute;
+            top: 14px;
+            left: 14px;
+            right: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: none;
+        }
+
+        .fps-badge {
+            background: rgba(11, 15, 23, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--accent-cyan);
+            font-weight: 600;
+        }
+
+        .status-badge {
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            color: #34D399;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        /* Side Stats Card */
+        .stats-panel {
+            flex: 1;
+            min-width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            padding: 22px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(12px);
+        }
+
+        /* Big Counter Box */
+        .counter-card {
+            text-align: center;
+            background: linear-gradient(180deg, rgba(56, 189, 248, 0.08) 0%, rgba(18, 25, 38, 0.8) 100%);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+        }
+
+        .counter-label {
+            font-size: 13px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .counter-number {
+            font-size: 80px;
+            font-weight: 800;
+            font-family: 'JetBrains Mono', monospace;
+            line-height: 1;
+            color: #38BDF8;
+            text-shadow: 0 0 35px rgba(56, 189, 248, 0.6);
+            transition: all 0.15s ease;
+        }
+
+        .counter-desc {
+            margin-top: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            color: #E2E8F0;
+        }
+
+        /* Individual Finger Indicators */
+        .finger-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .finger-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            padding: 10px 14px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            transition: all 0.2s ease;
+        }
+
+        .finger-item.active {
+            background: rgba(16, 185, 129, 0.12);
+            border-color: rgba(16, 185, 129, 0.4);
+            color: #34D399;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.15);
+        }
+
+        .finger-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #475569;
+        }
+
+        .finger-item.active .finger-dot {
+            background: #10B981;
+            box-shadow: 0 0 8px #10B981;
+        }
+
+        /* Dimmer Pinch Gauge */
+        .dimmer-card {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+
+        .dimmer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .dimmer-bar-bg {
+            height: 12px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .dimmer-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #F59E0B, #EF4444);
+            border-radius: 20px;
+            transition: width 0.08s ease;
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+        }
+
+        .dimmer-subtext {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+
+        /* Instructions list */
+        .rule-card {
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+        .rule-card b {
+            color: #F8FAFC;
+        }
+
+        @media (max-width: 800px) {
+            .main-layout {
+                flex-direction: column;
+                align-items: center;
+            }
+            .camera-card {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>⚡ Live Hand & Finger Detection</h1>
+        <p>Realtime In-Browser Computer Vision powered by Google MediaPipe</p>
+    </div>
+
+    <div class="main-layout">
+        
+        <!-- Live Camera Card -->
+        <div class="camera-card">
+            <video id="webcam" playsinline></video>
+            <canvas id="output_canvas" width="640" height="480"></canvas>
+
+            <div class="hud-overlay">
+                <span class="status-badge" id="hudStatus">● Camera Running</span>
+                <span class="fps-badge" id="fpsDisplay">0 FPS</span>
+            </div>
+        </div>
+
+        <!-- Right Stats Panel -->
+        <div class="stats-panel">
+            
+            <!-- Big Finger Counter -->
+            <div class="card counter-card">
+                <div class="counter-label">Detected Fingers</div>
+                <div class="counter-number" id="fingerCountText">0</div>
+                <div class="counter-desc" id="gestureMeaning">Fist (All Closed)</div>
+            </div>
+
+            <!-- Finger Individual Status -->
+            <div class="card">
+                <div class="counter-label" style="margin-bottom: 12px;">Finger Breakdown</div>
+                <div class="finger-list">
+                    <div class="finger-item" id="f_thumb">
+                        <span>👍 Thumb</span>
+                        <div class="finger-dot"></div>
+                    </div>
+                    <div class="finger-item" id="f_index">
+                        <span>☝️ Index</span>
+                        <div class="finger-dot"></div>
+                    </div>
+                    <div class="finger-item" id="f_middle">
+                        <span>🖕 Middle</span>
+                        <div class="finger-dot"></div>
+                    </div>
+                    <div class="finger-item" id="f_ring">
+                        <span>💍 Ring</span>
+                        <div class="finger-dot"></div>
+                    </div>
+                    <div class="finger-item" id="f_pinky" style="grid-column: 1 / -1;">
+                        <span>🤙 Pinky</span>
+                        <div class="finger-dot"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Light Dimmer / Pinch Distance Preview -->
+            <div class="card dimmer-card">
+                <div class="dimmer-header">
+                    <span style="font-size: 13px; font-weight: 700; color: #F59E0B;">🤏 Dimmer (Pinch Slider)</span>
+                    <span id="dimmerPct" style="font-family: 'JetBrains Mono'; font-weight: 700; color: #F59E0B;">0%</span>
+                </div>
+                <div class="dimmer-bar-bg">
+                    <div class="dimmer-bar-fill" id="dimmerBar"></div>
+                </div>
+                <div class="dimmer-subtext">Angootha aur Index finger paas-door karein light dim karne ke liye!</div>
+            </div>
+
+            <!-- Info Guide -->
+            <div class="card rule-card">
+                💡 <b>Mapping to Electronia:</b><br>
+                • <b>1 Finger:</b> D1 Light ON<br>
+                • <b>2 Fingers:</b> D2 Fan ON<br>
+                • <b>0 Fingers (Mutthi):</b> All Appliances OFF
+            </div>
+
+        </div>
+
+    </div>
+
+<script>
+    const videoElement = document.getElementById('webcam');
+    const canvasElement = document.getElementById('output_canvas');
+    const canvasCtx = canvasElement.getContext('2d');
+
+    const fingerCountText = document.getElementById('fingerCountText');
+    const gestureMeaning = document.getElementById('gestureMeaning');
+    const fpsDisplay = document.getElementById('fpsDisplay');
+    const dimmerBar = document.getElementById('dimmerBar');
+    const dimmerPct = document.getElementById('dimmerPct');
+
+    const fThumb = document.getElementById('f_thumb');
+    const fIndex = document.getElementById('f_index');
+    const fMiddle = document.getElementById('f_middle');
+    const fRing = document.getElementById('f_ring');
+    const fPinky = document.getElementById('f_pinky');
+
+    let lastFrameTime = performance.now();
+    let frameCount = 0;
+    let currentFps = 0;
+
+    // Landmark Indices
+    const TIP_IDS = [4, 8, 12, 16, 20];
+
+    const GESTURE_NAMES = {
+        0: "✊ Fist (Closed)",
+        1: "☝️ One (D1 Light ON)",
+        2: "✌️ Two (D2 Fan ON)",
+        3: "🤟 Three (AC Mode)",
+        4: "🖖 Four (TV Mode)",
+        5: "🖐️ Five (Full Power)"
+    };
+
+    function onResults(results) {
+        // FPS calculation
+        frameCount++;
+        const now = performance.now();
+        if (now - lastFrameTime >= 1000) {
+            currentFps = frameCount;
+            frameCount = 0;
+            lastFrameTime = now;
+            fpsDisplay.innerText = `${currentFps} FPS`;
+        }
+
+        canvasCtx.save();
+        canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+        canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+
+        let totalFingers = 0;
+        let isThumbUp = false;
+        let isIndexUp = false;
+        let isMiddleUp = false;
+        let isRingUp = false;
+        let isPinkyUp = false;
+        let pinchDistance = 0;
+
+        if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+            const landmarks = results.multiHandLandmarks[0];
+
+            // Draw Skeleton
+            drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, { color: '#00FFCC', lineWidth: 4 });
+            drawLandmarks(canvasCtx, landmarks, { color: '#FF0055', lineWidth: 1, radius: 4 });
+
+            // 1. Thumb Check:
+            // Compare distance between Thumb Tip (4) and Pinky MCP (17) vs Thumb IP (3) and Pinky MCP (17)
+            const dTipPinky = Math.hypot(landmarks[4].x - landmarks[17].x, landmarks[4].y - landmarks[17].y);
+            const dIpPinky = Math.hypot(landmarks[3].x - landmarks[17].x, landmarks[3].y - landmarks[17].y);
+            isThumbUp = (dTipPinky > dIpPinky * 1.18);
+
+            // 2. Other 4 fingers (Tip Y < PIP Y)
+            isIndexUp = (landmarks[8].y < landmarks[6].y);
+            isMiddleUp = (landmarks[12].y < landmarks[10].y);
+            isRingUp = (landmarks[16].y < landmarks[14].y);
+            isPinkyUp = (landmarks[20].y < landmarks[18].y);
+
+            totalFingers = (isThumbUp ? 1 : 0) + 
+                           (isIndexUp ? 1 : 0) + 
+                           (isMiddleUp ? 1 : 0) + 
+                           (isRingUp ? 1 : 0) + 
+                           (isPinkyUp ? 1 : 0);
+
+            // Calculate Pinch Distance between Thumb Tip (4) and Index Tip (8)
+            const rawPinch = Math.hypot(landmarks[4].x - landmarks[8].x, landmarks[4].y - landmarks[8].y);
+            // Map 0.04 - 0.25 to 0% - 100%
+            pinchDistance = Math.min(100, Math.max(0, Math.round(((rawPinch - 0.04) / 0.20) * 100)));
+
+            // Draw Pinch Line if both are visible
+            canvasCtx.beginPath();
+            canvasCtx.moveTo(landmarks[4].x * canvasElement.width, landmarks[4].y * canvasElement.height);
+            canvasCtx.lineTo(landmarks[8].x * canvasElement.width, landmarks[8].y * canvasElement.height);
+            canvasCtx.strokeStyle = '#F59E0B';
+            canvasCtx.lineWidth = 3;
+            canvasCtx.stroke();
+        }
+
+        // Update UI
+        fingerCountText.innerText = totalFingers;
+        gestureMeaning.innerText = GESTURE_NAMES[totalFingers] || "Detecting...";
+
+        // Update individual finger indicators
+        fThumb.classList.toggle('active', isThumbUp);
+        fIndex.classList.toggle('active', isIndexUp);
+        fMiddle.classList.toggle('active', isMiddleUp);
+        fRing.classList.toggle('active', isRingUp);
+        fPinky.classList.toggle('active', isPinkyUp);
+
+        // Update Dimmer Bar
+        dimmerBar.style.width = `${pinchDistance}%`;
+        dimmerPct.innerText = `${pinchDistance}%`;
+
+        canvasCtx.restore();
+    }
+
+    // Initialize MediaPipe Hands in Lite Mode (modelComplexity: 0 for 60 FPS)
+    const hands = new Hands({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+    });
+
+    hands.setOptions({
+        maxNumHands: 1,
+        modelComplexity: 0, // Lite model for super smooth 60 FPS
+        minDetectionConfidence: 0.6,
+        minTrackingConfidence: 0.5
+    });
+
+    hands.onResults(onResults);
+
+    // Start Webcam
+    const camera = new Camera(videoElement, {
+        onFrame: async () => {
+            await hands.send({ image: videoElement });
+        },
+        width: 640,
+        height: 480
+    });
+
+    camera.start().then(() => {
+        document.getElementById('hudStatus').innerText = "● Camera Active (640x480)";
+    }).catch(err => {
+        document.getElementById('hudStatus').innerText = "❌ Camera Error: " + err.message;
+        document.getElementById('hudStatus').style.color = "#EF4444";
+    });
+</script>
+
+</body>
+</html>

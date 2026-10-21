@@ -1,0 +1,23 @@
+============================================================
+NodeMCU ESP8266 Hardware Device Information
+============================================================
+
+Standard MAC Address : C8:C9:A3:34:F8:1E
+Dot Format MAC        : C8.C9.A3.34.F8.1E
+Clean Hex MAC         : C8C9A334F81E
+Chip ID (Hex)         : ESP-34f81e
+CPU Frequency         : 80 MHz
+Free RAM (Heap)       : 50 KB
+
+MQTT Topics for this Device:
+- Pin Command Topic   : devices/C8:C9:A3:34:F8:1E/pin/{PIN_NAME}/set
+- Dot Topic (Alt)     : devices/C8.C9.A3.34.F8.1E/pin/{PIN_NAME}/set
+- Telemetry Command   : devices/C8:C9:A3:34:F8:1E/command
+- State Acknowledge   : devices/C8:C9:A3:34:F8:1E/pin/{PIN_NAME}/state
+- Status / LWT        : devices/C8:C9:A3:34:F8:1E/status
+- Heartbeat           : devices/C8:C9:A3:34:F8:1E/heartbeat
+
+WiFi Credentials:
+- SSID                : 3118_2.4G
+- Server MQTT IP      : 20.235.244.153
+- Server MQTT Port    : 1883

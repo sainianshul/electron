@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>👁️ AI Pupillometry & Lie Stress Analyzer — Electronia</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- MediaPipe FaceMesh & Camera Utils -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+
+    <style>
+        :root {
+            --bg-base: #060911;
+            --bg-card: rgba(15, 23, 42, 0.75);
+            --border-card: rgba(255, 255, 255, 0.08);
+            --accent-amber: #F59E0B;
+            --accent-red: #EF4444;
+            --accent-cyan: #38BDF8;
+            --accent-green: #10B981;
+            --text-main: #F8FAFC;
+            --text-muted: #94A3B8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 24px 16px;
+            background-image: 
+                radial-gradient(circle at 20% 15%, rgba(245, 158, 11, 0.07) 0%, transparent 40%),
+                radial-gradient(circle at 80% 85%, rgba(239, 68, 68, 0.06) 0%, transparent 40%);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .privacy-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid rgba(16, 185, 129, 0.35);
+            color: #34D399;
+            margin-bottom: 8px;
+        }
+
+        .header h1 {
+            font-size: 26px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #F59E0B 0%, #EF4444 50%, #EC4899 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        /* Workspace Layout */
+        .workspace {
+            display: flex;
+            gap: 20px;
+            max-width: 1100px;
+            width: 100%;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        /* Video Card */
+        .viewport-card {
+            position: relative;
+            width: 560px;
+            max-width: 100%;
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+        }
+
+        #webcam {
+            display: none;
+        }
+
+        #output_canvas {
+            width: 100%;
+            height: auto;
+            display: block;
+            transform: scaleX(-1); /* Mirror camera */
+        }
+
+        .hud-top {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            right: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: none;
+        }
+
+        .hud-chip {
+            background: rgba(6, 9, 17, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--accent-cyan);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Right Panel */
+        .dashboard-panel {
+            flex: 1;
+            min-width: 340px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(12px);
+        }
+
+        /* Stress & Lie Score Hero Card */
+        .stress-hero-card {
+            text-align: center;
+            background: linear-gradient(180deg, rgba(245, 158, 11, 0.1) 0%, rgba(15, 23, 42, 0.85) 100%);
+            border: 1.5px solid rgba(245, 158, 11, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .score-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        .score-number {
+            font-size: 72px;
+            font-weight: 800;
+            font-family: 'JetBrains Mono', monospace;
+            line-height: 1;
+            margin: 10px 0;
+            color: #F59E0B;
+            text-shadow: 0 0 30px rgba(245, 158, 11, 0.5);
+            transition: all 0.2s ease;
+        }
+
+        .verdict-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 13px;
+            letter-spacing: 0.5px;
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            color: #34D399;
+            transition: all 0.2s ease;
+        }
+
+        .verdict-badge.warning {
+            background: rgba(245, 158, 11, 0.2);
+            border-color: rgba(245, 158, 11, 0.5);
+            color: #FBBF24;
+        }
+
+        .verdict-badge.danger {
+            background: rgba(239, 68, 68, 0.25);
+            border-color: rgba(239, 68, 68, 0.6);
+            color: #F87171;
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+        }
+
+        /* 3 Ocular Metric Gauges */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+        }
+
+        .metric-box {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            padding: 12px 10px;
+            border-radius: 14px;
+            text-align: center;
+        }
+
+        .metric-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
+        .metric-val {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 18px;
+            font-weight: 800;
+            color: #E2E8F0;
+            margin-top: 4px;
+        }
+
+        /* Live Polygraph Waveform Canvas */
+        .polygraph-card {
+            padding: 16px;
+        }
+
+        .poly-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--accent-cyan);
+            margin-bottom: 8px;
+        }
+
+        #polyCanvas {
+            width: 100%;
+            height: 90px;
+            background: rgba(6, 9, 17, 0.7);
+            border-radius: 12px;
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            display: block;
+        }
+
+        /* Interactive Interrogation Simulator */
+        .test-box {
+            background: rgba(245, 158, 11, 0.05);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            border-radius: 16px;
+            padding: 14px;
+        }
+
+        .btn-interrogate {
+            background: linear-gradient(135deg, #F59E0B, #EF4444);
+            border: none;
+            color: white;
+            font-weight: 700;
+            padding: 10px 18px;
+            border-radius: 12px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 13px;
+            transition: opacity 0.2s;
+        }
+        .btn-interrogate:hover {
+            opacity: 0.9;
+        }
+
+        .question-text {
+            font-size: 13px;
+            font-weight: 600;
+            color: #F8FAFC;
+            margin: 10px 0 6px 0;
+            min-height: 38px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="privacy-badge">🔒 100% Local & Offline — Zero Camera Data Uploaded</div>
+        <h1>AI Pupillometry & Lie Stress Analyzer</h1>
+        <p>Aankh ki putli (Pupil Dilation), Blinking aur Micro-Saccades se Cognitive Stress & Lie Index nikalna</p>
+    </div>
+
+    <div class="workspace">
+        
+        <!-- Left: Live Video with Reticle Overlay -->
+        <div class="viewport-card">
+            <video id="webcam" playsinline></video>
+            <canvas id="output_canvas" width="640" height="480"></canvas>
+
+            <div class="hud-top">
+                <span class="hud-chip" id="hudFaceState">● Scanning Iris...</span>
+                <span class="hud-chip" id="hudFps">0 FPS</span>
+            </div>
+        </div>
+
+        <!-- Right: Polygraph & Metrics -->
+        <div class="dashboard-panel">
+            
+            <!-- Hero Stress & Deception Gauge -->
+            <div class="card stress-hero-card">
+                <div class="score-title">Cognitive Deception & Stress Index</div>
+                <div class="score-number" id="stressScore">0%</div>
+                <div class="verdict-badge" id="verdictBadge">● CALM / TRUTHFUL</div>
+            </div>
+
+            <!-- 3 Ocular Biometric Gauges -->
+            <div class="card">
+                <div class="score-title" style="margin-bottom: 10px;">Ocular Biometrics (Eye Telemetry)</div>
+                <div class="metrics-grid">
+                    <div class="metric-box">
+                        <div class="metric-label">Pupil / Iris Size</div>
+                        <div class="metric-val" id="pupilSizeText">--</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-label">Total Blinks</div>
+                        <div class="metric-val" id="blinkCountText">0</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-label">Eye Jitter (Saccades)</div>
+                        <div class="metric-val" id="jitterText">0.0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Polygraph Line Chart -->
+            <div class="card polygraph-card">
+                <div class="poly-header">
+                    <span>📈 Live Polygraph Stress Waveform</span>
+                    <span id="polyStatus" style="color: #10B981;">Baseline Stable</span>
+                </div>
+                <canvas id="polyCanvas" width="320" height="90"></canvas>
+            </div>
+
+            <!-- Interactive Interrogation Simulation -->
+            <div class="card test-box">
+                <button class="btn-interrogate" id="btnStartTest">▶ Start Lie Detection Interrogation Test</button>
+                <div class="question-text" id="questionBox">
+                    Click start. AI baseline calibrate karega aur 2 test questions puchega.
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+<script>
+    const videoElement = document.getElementById('webcam');
+    const canvasElement = document.getElementById('output_canvas');
+    const canvasCtx = canvasElement.getContext('2d');
+
+    const stressScoreEl = document.getElementById('stressScore');
+    const verdictBadge = document.getElementById('verdictBadge');
+    const pupilSizeText = document.getElementById('pupilSizeText');
+    const blinkCountText = document.getElementById('blinkCountText');
+    const jitterText = document.getElementById('jitterText');
+    const hudFaceState = document.getElementById('hudFaceState');
+    const hudFps = document.getElementById('hudFps');
+
+    const polyCanvas = document.getElementById('polyCanvas');
+    const polyCtx = polyCanvas.getContext('2d');
+    const polyStatus = document.getElementById('polyStatus');
+
+    let frameCount = 0;
+    let lastFpsTime = performance.now();
+
+    // Eye Telemetry Variables
+    let baselinePupilSize = null;
+    let pupilReadings = [];
+    let prevIrisPos = null;
+    let jitterScore = 0;
+    let totalBlinks = 0;
+    let isEyeClosed = false;
+    let blinkTimestamps = [];
+
+    // Stress Waveform
+    let stressWave = new Array(80).fill(0);
+    let smoothedStress = 15;
+
+    // Helper: Draw Polygraph Line Chart
+    function drawPolygraph(values) {
+        polyCtx.clearRect(0, 0, polyCanvas.width, polyCanvas.height);
+
+        // Draw grid lines
+        polyCtx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+        polyCtx.lineWidth = 1;
+        polyCtx.beginPath();
+        polyCtx.moveTo(0, polyCanvas.height / 2);
+        polyCtx.lineTo(polyCanvas.width, polyCanvas.height / 2);
+        polyCtx.stroke();
+
+        // Draw Stress Line
+        polyCtx.beginPath();
+        polyCtx.strokeStyle = (smoothedStress > 65) ? '#EF4444' : ((smoothedStress > 35) ? '#F59E0B' : '#10B981');
+        polyCtx.lineWidth = 2.5;
+
+        for (let i = 0; i < values.length; i++) {
+            const x = (i / (values.length - 1)) * polyCanvas.width;
+            const y = polyCanvas.height - (values[i] / 100 * (polyCanvas.height - 15) + 5);
+
+            if (i === 0) polyCtx.moveTo(x, y);
+            else polyCtx.lineTo(x, y);
+        }
+        polyCtx.stroke();
+    }
+
+    function calculateDistance(p1, p2) {
+        return Math.hypot(p1.x - p2.x, p1.y - p2.y);
+    }
+
+    // MediaPipe Result Callback
+    function onResults(results) {
+        frameCount++;
+        const now = performance.now();
+        if (now - lastFpsTime >= 1000) {
+            hudFps.innerText = `${frameCount} FPS`;
+            frameCount = 0;
+            lastFpsTime = now;
+        }
+
+        canvasCtx.save();
+        canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+        canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+
+        if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+            hudFaceState.innerText = "● Iris & Reticle Locked";
+            hudFaceState.style.color = "#34D399";
+
+            const lm = results.multiFaceLandmarks[0];
+
+            // MediaPipe Iris Landmarks (Available with refineLandmarks: true):
+            // Left Eye: Center 468, perimeter 469, 470, 471, 472
+            // Right Eye: Center 473, perimeter 474, 475, 476, 477
+            const leftIrisCenter = lm[468] || lm[473];
+            const rightIrisCenter = lm[473] || lm[468];
+
+            // Eyelids for Blink detection (EAR - Eye Aspect Ratio)
+            // Left eye: 33 (inner), 133 (outer), 159 (top), 145 (bottom)
+            const leftEyeWidth = calculateDistance(lm[33], lm[133]);
+            const leftEyeHeight = calculateDistance(lm[159], lm[145]);
+            const ear = leftEyeHeight / (leftEyeWidth || 1);
+
+            // Blink Detection Logic
+            if (ear < 0.16) {
+                if (!isEyeClosed) {
+                    isEyeClosed = true;
+                    totalBlinks++;
+                    blinkCountText.innerText = totalBlinks;
+                    blinkTimestamps.push(now);
+                }
+            } else if (ear > 0.22) {
+                isEyeClosed = false;
+            }
+
+            // Iris Size / Dilation Proxy
+            // Diameter of Iris vs Eye Opening
+            const irisDiameter = calculateDistance(lm[469] || lm[33], lm[471] || lm[133]);
+            const irisRatio = (irisDiameter * 1000).toFixed(1);
+            pupilSizeText.innerText = `${irisRatio} px`;
+
+            // Micro-Saccade Jitter (Frame-to-frame eye movement velocity)
+            if (prevIrisPos) {
+                const stepDist = calculateDistance(leftIrisCenter, prevIrisPos) * 1000;
+                jitterScore = 0.3 * stepDist + 0.7 * jitterScore;
+                jitterText.innerText = jitterScore.toFixed(1);
+            }
+            prevIrisPos = { x: leftIrisCenter.x, y: leftIrisCenter.y };
+
+            // Baseline calibration on first 60 frames
+            pupilReadings.push(parseFloat(irisRatio));
+            if (pupilReadings.length > 90) pupilReadings.shift();
+
+            if (!baselinePupilSize && pupilReadings.length >= 40) {
+                baselinePupilSize = pupilReadings.reduce((a, b) => a + b, 0) / pupilReadings.length;
+            }
+
+            // Compute Cognitive Stress Index
+            let currentStress = 10;
+            if (baselinePupilSize) {
+                const dilationDelta = Math.max(0, parseFloat(irisRatio) - baselinePupilSize);
+                // Dilation impact
+                currentStress += (dilationDelta * 8);
+                // Jitter impact
+                currentStress += (jitterScore * 3.5);
+
+                // Sudden Blink burst impact (more than 3 blinks in last 4 seconds)
+                const recentBlinks = blinkTimestamps.filter(t => now - t < 4000).length;
+                if (recentBlinks >= 3) {
+                    currentStress += 20;
+                }
+            }
+
+            currentStress = Math.min(100, Math.max(5, Math.round(currentStress)));
+            smoothedStress = Math.round(0.15 * currentStress + 0.85 * smoothedStress);
+
+            // Draw HUD Circles on both Irises
+            [leftIrisCenter, rightIrisCenter].forEach(pt => {
+                if (!pt) return;
+                const cx = pt.x * canvasElement.width;
+                const cy = pt.y * canvasElement.height;
+
+                // Reticle targeting circle
+                canvasCtx.beginPath();
+                canvasCtx.arc(cx, cy, 14, 0, 2 * Math.PI);
+                canvasCtx.strokeStyle = (smoothedStress > 65) ? '#EF4444' : '#F59E0B';
+                canvasCtx.lineWidth = 2;
+                canvasCtx.stroke();
+
+                // Crosshairs
+                canvasCtx.beginPath();
+                canvasCtx.moveTo(cx - 18, cy); canvasCtx.lineTo(cx + 18, cy);
+                canvasCtx.moveTo(cx, cy - 18); canvasCtx.lineTo(cx, cy + 18);
+                canvasCtx.strokeStyle = 'rgba(56, 189, 248, 0.6)';
+                canvasCtx.lineWidth = 1;
+                canvasCtx.stroke();
+            });
+
+            // Update Stress UI
+            stressScoreEl.innerText = `${smoothedStress}%`;
+            stressScoreEl.style.color = (smoothedStress > 65) ? '#EF4444' : ((smoothedStress > 35) ? '#F59E0B' : '#10B981');
+
+            if (smoothedStress > 68) {
+                verdictBadge.className = 'verdict-badge danger';
+                verdictBadge.innerText = '⚠️ HIGH DECEPTION / ACUTE STRESS';
+                polyStatus.innerText = 'ALERT: Acute Autonomic Surge Detected!';
+                polyStatus.style.color = '#EF4444';
+            } else if (smoothedStress > 38) {
+                verdictBadge.className = 'verdict-badge warning';
+                verdictBadge.innerText = '⚡ ELEVATED COGNITIVE STRAIN';
+                polyStatus.innerText = 'Notice: Moderate Pupillary Expansion';
+                polyStatus.style.color = '#F59E0B';
+            } else {
+                verdictBadge.className = 'verdict-badge';
+                verdictBadge.innerText = '● CALM / TRUTHFUL BASELINE';
+                polyStatus.innerText = 'Baseline Normal';
+                polyStatus.style.color = '#10B981';
+            }
+
+            // Update Polygraph Wave
+            stressWave.push(smoothedStress);
+            stressWave.shift();
+            drawPolygraph(stressWave);
+
+        } else {
+            hudFaceState.innerText = "❌ No Face in Frame";
+            hudFaceState.style.color = "#EF4444";
+        }
+
+        canvasCtx.restore();
+    }
+
+    // Initialize MediaPipe FaceMesh with Iris refinement
+    const faceMesh = new FaceMesh({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+    });
+
+    faceMesh.setOptions({
+        maxNumFaces: 1,
+        refineLandmarks: true, // Enables Iris landmarks 468-477
+        minDetectionConfidence: 0.6,
+        minTrackingConfidence: 0.6
+    });
+
+    faceMesh.onResults(onResults);
+
+    // Start Camera
+    const camera = new Camera(videoElement, {
+        onFrame: async () => {
+            await faceMesh.send({ image: videoElement });
+        },
+        width: 640,
+        height: 480
+    });
+
+    camera.start();
+
+    // =========================================================================
+    // INTERROGATION SIMULATION TEST
+    // =========================================================================
+    const btnStartTest = document.getElementById('btnStartTest');
+    const questionBox = document.getElementById('questionBox');
+
+    const QUESTIONS = [
+        "⏳ 1. Baseline Phase: 5 second camera me dekhein aur shaant rahein...",
+        "❓ 2. Question 1: Kya aapne kabhi kisi se koi bada jhooth bola hai?",
+        "❓ 3. Question 2: Kya aap is waqt humse 100% sach bol rahe hain?"
+    ];
+
+    let qIndex = 0;
+    btnStartTest.addEventListener('click', () => {
+        btnStartTest.disabled = true;
+        btnStartTest.innerText = "Interrogation in progress...";
+        qIndex = 0;
+        runQuestionStep();
+    });
+
+    function runQuestionStep() {
+        if (qIndex < QUESTIONS.length) {
+            questionBox.innerText = QUESTIONS[qIndex];
+            questionBox.style.color = "#F59E0B";
+            qIndex++;
+            setTimeout(runQuestionStep, 6000);
+        } else {
+            const finalVerdict = (smoothedStress > 60) 
+                ? "❌ RESULT: Deception / High Stress Detected during answers!" 
+                : "✅ RESULT: Truthful / Calm baseline maintained!";
+            questionBox.innerText = finalVerdict;
+            questionBox.style.color = (smoothedStress > 60) ? "#EF4444" : "#10B981";
+            btnStartTest.disabled = false;
+            btnStartTest.innerText = "Restart Interrogation Test";
+        }
+    }
+</script>
+
+</body>
+</html>

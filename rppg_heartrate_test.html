@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🫀 Optical rPPG Heart Rate Scanner — Electronia AI</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- MediaPipe FaceMesh & Camera Utils -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+
+    <style>
+        :root {
+            --bg-base: #070A10;
+            --bg-card: rgba(16, 23, 38, 0.75);
+            --border-card: rgba(255, 255, 255, 0.08);
+            --accent-red: #EF4444;
+            --accent-cyan: #38BDF8;
+            --accent-green: #10B981;
+            --text-main: #F8FAFC;
+            --text-muted: #94A3B8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 24px 16px;
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(239, 68, 68, 0.07) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(56, 189, 248, 0.06) 0%, transparent 40%);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .badge-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            color: #F87171;
+            margin-bottom: 10px;
+        }
+
+        .header h1 {
+            font-size: 26px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #F87171 0%, #F43F5E 50%, #FB7185 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        /* Layout Grid */
+        .workspace {
+            display: flex;
+            gap: 20px;
+            max-width: 1050px;
+            width: 100%;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        /* Video Card */
+        .viewport-card {
+            position: relative;
+            width: 580px;
+            max-width: 100%;
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+        }
+
+        #webcam {
+            display: none;
+        }
+
+        #output_canvas {
+            width: 100%;
+            height: auto;
+            display: block;
+            transform: scaleX(-1); /* Mirrored */
+        }
+
+        /* Forehead Scan Overlay Box */
+        .hud-overlay {
+            position: absolute;
+            top: 14px;
+            left: 14px;
+            right: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: none;
+        }
+
+        .hud-chip {
+            background: rgba(7, 10, 16, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--accent-cyan);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Right Stats Panel */
+        .dashboard-panel {
+            flex: 1;
+            min-width: 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(12px);
+        }
+
+        /* Heart Rate Hero Card */
+        .bpm-hero-card {
+            text-align: center;
+            background: linear-gradient(180deg, rgba(239, 68, 68, 0.12) 0%, rgba(16, 23, 38, 0.8) 100%);
+            border: 1.5px solid rgba(239, 68, 68, 0.35);
+        }
+
+        .bpm-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        .heart-icon-wrapper {
+            margin: 10px 0;
+            display: inline-block;
+            font-size: 32px;
+            transition: transform 0.15s ease;
+        }
+
+        .heart-icon-wrapper.beat {
+            transform: scale(1.35);
+        }
+
+        .bpm-value {
+            font-size: 78px;
+            font-weight: 800;
+            font-family: 'JetBrains Mono', monospace;
+            line-height: 1;
+            color: #EF4444;
+            text-shadow: 0 0 30px rgba(239, 68, 68, 0.6);
+        }
+
+        .bpm-unit {
+            font-size: 14px;
+            font-weight: 600;
+            color: #FDA4AF;
+            margin-top: 6px;
+        }
+
+        /* Live PPG Graph Waveform */
+        .graph-card {
+            padding: 16px;
+        }
+
+        .graph-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--accent-cyan);
+        }
+
+        #ppgCanvas {
+            width: 100%;
+            height: 80px;
+            background: rgba(7, 10, 16, 0.7);
+            border-radius: 10px;
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            display: block;
+        }
+
+        /* Signal Stability Indicator */
+        .stability-bar-bg {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .stability-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #F59E0B, #10B981);
+            border-radius: 10px;
+            transition: width 0.2s ease;
+        }
+
+        /* Guide Tip */
+        .guide-box {
+            font-size: 12px;
+            line-height: 1.6;
+            color: var(--text-muted);
+            border-left: 3px solid #38BDF8;
+            padding-left: 12px;
+        }
+        .guide-box b {
+            color: #F8FAFC;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="badge-pill">🔬 MIT CSAIL rPPG Technology</div>
+        <h1>Contactless Optical Heart Rate Scanner</h1>
+        <p>Aam Laptop Webcam se chehre ki blood vessels ko scan karke Heart Rate (BPM) nikalna</p>
+    </div>
+
+    <div class="workspace">
+        
+        <!-- Left: Live Video Feed -->
+        <div class="viewport-card">
+            <video id="webcam" playsinline></video>
+            <canvas id="output_canvas" width="640" height="480"></canvas>
+
+            <div class="hud-overlay">
+                <span class="hud-chip" id="hudStatus">● Initializing AI...</span>
+                <span class="hud-chip" id="hudFps">0 FPS</span>
+            </div>
+        </div>
+
+        <!-- Right: Realtime Medical Vitals Dashboard -->
+        <div class="dashboard-panel">
+            
+            <!-- Big BPM Card -->
+            <div class="card bpm-hero-card">
+                <div class="bpm-title">Heart Rate (Pulse)</div>
+                <div class="heart-icon-wrapper" id="heartIcon">❤️</div>
+                <div class="bpm-value" id="bpmDisplay">--</div>
+                <div class="bpm-unit">BEATS PER MINUTE</div>
+                
+                <div class="mt-3">
+                    <div class="d-flex justify-content-between text-muted" style="font-size: 11px;">
+                        <span>Buffer Calibration</span>
+                        <span id="calibPct">0%</span>
+                    </div>
+                    <div class="stability-bar-bg">
+                        <div class="stability-bar-fill" id="calibBar"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PPG Pulse Wave Canvas -->
+            <div class="card graph-card">
+                <div class="graph-header">
+                    <span>📈 Live Photoplethysmogram (PPG Wave)</span>
+                    <span id="signalState" style="color: #F59E0B;">Gathering Data...</span>
+                </div>
+                <canvas id="ppgCanvas" width="300" height="80"></canvas>
+            </div>
+
+            <!-- User Guidance -->
+            <div class="card guide-box">
+                💡 <b>Accurate Reading ke liye:</b><br>
+                1. Chehre par achhi light (roshni) honi chahiye.<br>
+                2. <b>5 se 8 second</b> tak bina sir hilaye camera ki taraf dekhein.<br>
+                3. Forehead par jo <b>green square box</b> dikhega, wahi se blood pulse capture hoti hai!
+            </div>
+
+        </div>
+
+    </div>
+
+<script>
+    const videoElement = document.getElementById('webcam');
+    const canvasElement = document.getElementById('output_canvas');
+    const canvasCtx = canvasElement.getContext('2d');
+
+    const bpmDisplay = document.getElementById('bpmDisplay');
+    const calibBar = document.getElementById('calibBar');
+    const calibPct = document.getElementById('calibPct');
+    const signalState = document.getElementById('signalState');
+    const heartIcon = document.getElementById('heartIcon');
+    const hudStatus = document.getElementById('hudStatus');
+    const hudFps = document.getElementById('hudFps');
+
+    const ppgCanvas = document.getElementById('ppgCanvas');
+    const ppgCtx = ppgCanvas.getContext('2d');
+
+    // Sampling Configuration
+    const BUFFER_SIZE = 180; // ~6 seconds at 30 FPS
+    let rawGreenSignal = [];
+    let ppgWavePlot = [];
+
+    let lastFrameTime = performance.now();
+    let frameCount = 0;
+    let smoothedBpm = 72;
+    let hasCalibrated = false;
+
+    // Helper: Draw Pulse Waveform
+    function drawWaveform(values) {
+        ppgCtx.clearRect(0, 0, ppgCanvas.width, ppgCanvas.height);
+        if (values.length < 2) return;
+
+        ppgCtx.beginPath();
+        ppgCtx.strokeStyle = '#38BDF8';
+        ppgCtx.lineWidth = 2;
+
+        const maxVal = Math.max(...values);
+        const minVal = Math.min(...values);
+        const range = (maxVal - minVal) || 1;
+
+        for (let i = 0; i < values.length; i++) {
+            const x = (i / (values.length - 1)) * ppgCanvas.width;
+            const normY = (values[i] - minVal) / range;
+            const y = ppgCanvas.height - (normY * (ppgCanvas.height - 10) + 5);
+
+            if (i === 0) ppgCtx.moveTo(x, y);
+            else ppgCtx.lineTo(x, y);
+        }
+        ppgCtx.stroke();
+    }
+
+    // Helper: Discrete Fourier Transform (DFT) for Heart Rate (45 BPM - 180 BPM)
+    function calculateBPM(signal, fps) {
+        if (signal.length < BUFFER_SIZE) return null;
+
+        // Zero-center the signal
+        const mean = signal.reduce((a, b) => a + b, 0) / signal.length;
+        const normalized = signal.map(v => v - mean);
+
+        // Heart rate range: 45 to 180 BPM -> 0.75 Hz to 3.0 Hz
+        const minFreq = 0.75;
+        const maxFreq = 3.0;
+        const freqStep = 0.02;
+
+        let maxPower = 0;
+        let peakFreq = 0;
+
+        for (let f = minFreq; f <= maxFreq; f += freqStep) {
+            let real = 0;
+            let imag = 0;
+
+            for (let n = 0; n < normalized.length; n++) {
+                const angle = (2 * Math.PI * f * n) / fps;
+                real += normalized[n] * Math.cos(angle);
+                imag -= normalized[n] * Math.sin(angle);
+            }
+
+            const power = (real * real) + (imag * imag);
+            if (power > maxPower) {
+                maxPower = power;
+                peakFreq = f;
+            }
+        }
+
+        const calculatedBpm = peakFreq * 60;
+        return (calculatedBpm >= 45 && calculatedBpm <= 180) ? calculatedBpm : null;
+    }
+
+    // Process Face Landmarks from MediaPipe
+    function onResults(results) {
+        frameCount++;
+        const now = performance.now();
+        if (now - lastFrameTime >= 1000) {
+            hudFps.innerText = `${frameCount} FPS`;
+            frameCount = 0;
+            lastFrameTime = now;
+        }
+
+        canvasCtx.save();
+        canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+        canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+
+        if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+            hudStatus.innerText = "● Face Locked (Scanning)";
+            hudStatus.style.color = "#34D399";
+
+            const landmarks = results.multiFaceLandmarks[0];
+
+            // Forehead ROI Landmarks:
+            // 10 = Top center forehead, 9 = between eyebrows, 67 = left forehead, 297 = right forehead
+            const topY = landmarks[10].y * canvasElement.height;
+            const bottomY = landmarks[9].y * canvasElement.height;
+            const leftX = landmarks[67].x * canvasElement.width;
+            const rightX = landmarks[297].x * canvasElement.width;
+
+            const roiWidth = Math.abs(rightX - leftX) * 0.75;
+            const roiHeight = Math.abs(bottomY - topY) * 0.75;
+            const roiX = (leftX + rightX) / 2 - (roiWidth / 2);
+            const roiY = (topY + bottomY) / 2 - (roiHeight / 2);
+
+            // Draw Forehead Tracking Box
+            canvasCtx.strokeStyle = '#10B981';
+            canvasCtx.lineWidth = 2;
+            canvasCtx.strokeRect(roiX, roiY, roiWidth, roiHeight);
+
+            canvasCtx.fillStyle = 'rgba(16, 185, 129, 0.15)';
+            canvasCtx.fillRect(roiX, roiY, roiWidth, roiHeight);
+
+            // Sample Green Channel from Forehead Pixels
+            try {
+                const imgData = canvasCtx.getImageData(roiX, roiY, roiWidth, roiHeight);
+                const data = imgData.data;
+
+                let greenSum = 0;
+                let pixelCount = 0;
+
+                // Loop through pixels and accumulate Green channel values
+                for (let i = 0; i < data.length; i += 4) {
+                    greenSum += data[i + 1]; // Green channel
+                    pixelCount++;
+                }
+
+                if (pixelCount > 0) {
+                    const avgGreen = greenSum / pixelCount;
+                    rawGreenSignal.push(avgGreen);
+
+                    if (rawGreenSignal.length > BUFFER_SIZE) {
+                        rawGreenSignal.shift();
+                        hasCalibrated = true;
+                    }
+
+                    // Update Waveform Display Buffer
+                    ppgWavePlot.push(avgGreen);
+                    if (ppgWavePlot.length > 100) ppgWavePlot.shift();
+                    drawWaveform(ppgWavePlot);
+
+                    // Update Calibration Progress
+                    const pct = Math.min(100, Math.round((rawGreenSignal.length / BUFFER_SIZE) * 100));
+                    calibBar.style.width = `${pct}%`;
+                    calibPct.innerText = `${pct}%`;
+
+                    // Calculate Heart Rate once buffer fills
+                    if (rawGreenSignal.length >= BUFFER_SIZE) {
+                        const bpm = calculateBPM(rawGreenSignal, 30);
+                        if (bpm) {
+                            smoothedBpm = Math.round(0.2 * bpm + 0.8 * smoothedBpm);
+                            bpmDisplay.innerText = smoothedBpm;
+                            signalState.innerText = "Pulse Locked (Optimal)";
+                            signalState.style.color = "#10B981";
+
+                            // Trigger pulse heartbeat animation
+                            heartIcon.classList.add('beat');
+                            setTimeout(() => heartIcon.classList.remove('beat'), 200);
+                        }
+                    } else {
+                        signalState.innerText = `Calibrating (${pct}%)...`;
+                        signalState.style.color = "#F59E0B";
+                    }
+                }
+            } catch (e) {
+                // Ignore out-of-bound coordinates
+            }
+        } else {
+            hudStatus.innerText = "❌ No Face Detected";
+            hudStatus.style.color = "#EF4444";
+            signalState.innerText = "Chehra camera ke samne layein";
+            signalState.style.color = "#EF4444";
+        }
+
+        canvasCtx.restore();
+    }
+
+    // Initialize MediaPipe FaceMesh
+    const faceMesh = new FaceMesh({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+    });
+
+    faceMesh.setOptions({
+        maxNumFaces: 1,
+        refineLandmarks: false,
+        minDetectionConfidence: 0.6,
+        minTrackingConfidence: 0.6
+    });
+
+    faceMesh.onResults(onResults);
+
+    // Start Camera
+    const camera = new Camera(videoElement, {
+        onFrame: async () => {
+            await faceMesh.send({ image: videoElement });
+        },
+        width: 640,
+        height: 480
+    });
+
+    camera.start().then(() => {
+        hudStatus.innerText = "● Camera Active";
+    }).catch(err => {
+        hudStatus.innerText = "Camera Error: " + err.message;
+    });
+</script>
+
+</body>
+</html>

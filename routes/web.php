@@ -73,6 +73,7 @@ Route::middleware(['auth'])->group(function () {
 
     // User Dashboard
     Route::get('dashboard', [\App\Http\Controllers\User\DashboardController::class, 'index'])->name('user.dashboard');
+    Route::get('gesture-control', [\App\Http\Controllers\User\GestureController::class, 'index'])->name('user.gesture.index');
 
     // User Appliances Management (Box UI)
     Route::prefix('appliances')->name('user.appliances.')->group(function () {

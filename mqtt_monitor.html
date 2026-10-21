@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MQTT Realtime Device Monitor — Electronia</title>
+    <!-- Google Fonts & MQTT.js -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+
+    <style>
+        :root {
+            --bg-base: #0B0F17;
+            --bg-card: rgba(23, 32, 48, 0.75);
+            --bg-card-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #F8FAFC;
+            --text-muted: #94A3B8;
+            --accent-blue: #38BDF8;
+            --accent-green: #10B981;
+            --accent-red: #EF4444;
+            --accent-amber: #F59E0B;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 30px 20px;
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(56, 189, 248, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(16, 185, 129, 0.06) 0%, transparent 40%);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Top Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 28px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--bg-card-border);
+        }
+
+        .brand-title {
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-badge {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: rgba(56, 189, 248, 0.15);
+            color: var(--accent-blue);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 18px;
+            border-radius: 100px;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid var(--bg-card-border);
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--accent-amber);
+            box-shadow: 0 0 10px var(--accent-amber);
+            transition: all 0.3s ease;
+        }
+
+        .status-dot.connected {
+            background: var(--accent-green);
+            box-shadow: 0 0 14px var(--accent-green);
+        }
+
+        .status-dot.disconnected {
+            background: var(--accent-red);
+            box-shadow: 0 0 14px var(--accent-red);
+        }
+
+        /* Broker Connection Bar */
+        .broker-bar {
+            background: var(--bg-card);
+            border: 1px solid var(--bg-card-border);
+            border-radius: 16px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            display: grid;
+            grid-template-columns: 2fr 1.5fr auto auto;
+            gap: 12px;
+            align-items: center;
+            backdrop-filter: blur(12px);
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .input-control {
+            background: rgba(11, 15, 23, 0.8);
+            border: 1px solid var(--bg-card-border);
+            padding: 10px 14px;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 13px;
+            font-family: 'JetBrains Mono', monospace;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .input-control:focus {
+            border-color: var(--accent-blue);
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            height: 40px;
+            align-self: flex-end;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #0284C7, #0EA5E9);
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(14, 165, 233, 0.3);
+        }
+
+        .btn-primary:hover {
+            opacity: 0.92;
+            transform: translateY(-1px);
+        }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--accent-red);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-danger:hover {
+            background: var(--accent-red);
+            color: #fff;
+        }
+
+        /* Main Grid */
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 900px) {
+            .grid-layout {
+                grid-template-columns: 1fr;
+            }
+            .broker-bar {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--bg-card-border);
+            border-radius: 18px;
+            padding: 24px;
+            backdrop-filter: blur(14px);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .count-badge {
+            background: rgba(255, 255, 255, 0.08);
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 100px;
+            color: var(--text-muted);
+        }
+
+        /* Live Device Visualizer */
+        .devices-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 16px;
+            max-height: 520px;
+            overflow-y: auto;
+            padding-right: 6px;
+        }
+
+        .device-box {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid var(--bg-card-border);
+            border-radius: 14px;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .device-box.state-on {
+            border-color: rgba(16, 185, 129, 0.4);
+            background: linear-gradient(145deg, rgba(16, 185, 129, 0.08), rgba(15, 23, 42, 0.8));
+            box-shadow: 0 4px 20px rgba(16, 185, 129, 0.15);
+        }
+
+        .device-box.state-off {
+            border-color: rgba(255, 255, 255, 0.06);
+            opacity: 0.85;
+        }
+
+        .device-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .device-pin-name {
+            font-size: 18px;
+            font-weight: 800;
+            color: #fff;
+        }
+
+        .device-mac {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+            margin-top: 2px;
+        }
+
+        .device-state-pill {
+            padding: 4px 10px;
+            border-radius: 100px;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .state-on .device-state-pill {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34D399;
+            border: 1px solid rgba(16, 185, 129, 0.4);
+        }
+
+        .state-off .device-state-pill {
+            background: rgba(148, 163, 184, 0.1);
+            color: var(--text-muted);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+        }
+
+        .device-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            color: var(--text-muted);
+            padding-top: 8px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .pulse-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-green);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); opacity: 0.7; }
+            50% { transform: scale(1.4); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.7; }
+        }
+
+        /* Live Message Log Stream */
+        .logs-stream {
+            background: #06090E;
+            border: 1px solid var(--bg-card-border);
+            border-radius: 12px;
+            height: 480px;
+            overflow-y: auto;
+            padding: 14px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 8px;
+        }
+
+        .log-entry {
+            padding: 8px 12px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            border-left: 3px solid var(--accent-blue);
+            animation: fadeIn 0.25s ease-out;
+            word-break: break-all;
+        }
+
+        .log-entry.type-set-1 {
+            border-left-color: var(--accent-green);
+            background: rgba(16, 185, 129, 0.05);
+        }
+
+        .log-entry.type-set-0 {
+            border-left-color: var(--accent-red);
+            background: rgba(239, 68, 68, 0.05);
+        }
+
+        .log-time {
+            color: #64748B;
+            font-size: 10px;
+            margin-bottom: 2px;
+        }
+
+        .log-topic {
+            color: #38BDF8;
+            font-weight: 600;
+        }
+
+        .log-payload {
+            color: #F1F5F9;
+            margin-top: 2px;
+        }
+
+        /* Test Manual Publish Panel */
+        .test-panel {
+            margin-top: 24px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--bg-card-border);
+            border-radius: 16px;
+            padding: 20px;
+        }
+
+        .test-controls {
+            display: grid;
+            grid-template-columns: 2fr 1fr auto auto;
+            gap: 12px;
+            align-items: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Header -->
+    <header class="header">
+        <div class="brand-title">
+            <span>⚡ Electronia</span>
+            <span class="brand-badge">MQTT Live Stream</span>
+        </div>
+
+        <div class="connection-status">
+            <span id="statusDot" class="status-dot"></span>
+            <span id="statusText">Connecting to Broker...</span>
+        </div>
+    </header>
+
+    <!-- Broker Connection Settings -->
+    <div class="broker-bar">
+        <div class="form-group">
+            <label class="form-label">WebSocket Broker URL (WSS)</label>
+            <input type="text" id="brokerUrl" class="input-control" value="wss://electron.rezel.online/mqtt">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Subscribed Topic Pattern</label>
+            <input type="text" id="topicPattern" class="input-control" value="devices/#">
+        </div>
+
+        <button id="btnConnect" class="btn btn-primary" onclick="connectMQTT()">
+            <span>Connect</span>
+        </button>
+
+        <button id="btnDisconnect" class="btn btn-danger" onclick="disconnectMQTT()" style="display:none;">
+            <span>Disconnect</span>
+        </button>
+    </div>
+
+    <!-- Main Live Visualizer & Logs Grid -->
+    <div class="grid-layout">
+        <!-- Live Devices Visualizer -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <span>💡 Realtime Pin States</span>
+                    <span id="deviceCount" class="count-badge">0 Pins Detected</span>
+                </div>
+                <button class="btn btn-danger" style="height: 30px; padding: 4px 10px; font-size: 11px;" onclick="clearDevices()">Reset Visualizer</button>
+            </div>
+
+            <div id="devicesContainer" class="devices-grid">
+                <div id="noDevicesPlaceholder" style="grid-column: 1/-1; text-align: center; padding: 60px 20px; color: #64748B;">
+                    <p style="font-size: 32px; margin-bottom: 8px;">📡</p>
+                    <p style="font-weight: 600;">Waiting for MQTT state changes...</p>
+                    <p style="font-size: 12px; margin-top: 4px;">Toggle any appliance from the web panel, or use the publisher below!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live MQTT Message Stream -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <span>📋 Live MQTT Event Log</span>
+                    <span id="messageCount" class="count-badge">0 Messages</span>
+                </div>
+                <button class="btn btn-danger" style="height: 30px; padding: 4px 10px; font-size: 11px;" onclick="clearLogs()">Clear Log</button>
+            </div>
+
+            <div id="logStream" class="logs-stream">
+                <div class="log-entry" style="border-left-color: #64748B;">
+                    <div class="log-time">System Ready</div>
+                    <div class="log-payload">Ready to receive MQTT messages from live broker...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Test Manual Publisher Bar -->
+    <div class="test-panel">
+        <h4 style="font-size: 14px; font-weight: 700; margin-bottom: 14px; color: var(--text-muted); text-transform: uppercase;">
+            🧪 Quick Manual Toggle Test (Publish to MQTT)
+        </h4>
+        <div class="test-controls">
+            <div class="form-group">
+                <label class="form-label">Test Topic</label>
+                <input type="text" id="pubTopic" class="input-control" value="devices/12.34.34.56/pin/D1/set">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Payload</label>
+                <input type="text" id="pubPayload" class="input-control" value="1">
+            </div>
+
+            <button class="btn btn-primary" style="background: var(--accent-green);" onclick="sendTestPublish('1')">
+                <span>⚡ Publish ON (1)</span>
+            </button>
+
+            <button class="btn btn-primary" style="background: #475569;" onclick="sendTestPublish('0')">
+                <span>🔌 Publish OFF (0)</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let client = null;
+    let messageCounter = 0;
+    const trackedPins = {}; // Key: "mac_pin"
+
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+    const btnConnect = document.getElementById('btnConnect');
+    const btnDisconnect = document.getElementById('btnDisconnect');
+    const devicesContainer = document.getElementById('devicesContainer');
+    const noDevicesPlaceholder = document.getElementById('noDevicesPlaceholder');
+    const logStream = document.getElementById('logStream');
+    const messageCountEl = document.getElementById('messageCount');
+    const deviceCountEl = document.getElementById('deviceCount');
+
+    function connectMQTT() {
+        const brokerUrl = document.getElementById('brokerUrl').value.trim();
+        const topic = document.getElementById('topicPattern').value.trim();
+
+        if (client) {
+            client.end();
+        }
+
+        statusDot.className = 'status-dot';
+        statusText.innerText = 'Connecting to ' + brokerUrl + '...';
+
+        const clientId = 'web_monitor_' + Math.random().toString(16).substring(2, 8);
+
+        client = mqtt.connect(brokerUrl, {
+            clientId: clientId,
+            clean: true,
+            connectTimeout: 5000,
+            reconnectPeriod: 2500,
+        });
+
+        client.on('connect', () => {
+            statusDot.className = 'status-dot connected';
+            statusText.innerText = 'Connected (Subscribed to ' + topic + ')';
+            btnConnect.style.display = 'none';
+            btnDisconnect.style.display = 'inline-flex';
+
+            addLog('SYSTEM', 'Connected to MQTT Broker successfully as ' + clientId, 'system');
+
+            client.subscribe(topic, (err) => {
+                if (err) {
+                    addLog('ERROR', 'Subscription failed: ' + err.message, 'error');
+                } else {
+                    addLog('SUB', 'Subscribed to topic pattern: ' + topic, 'system');
+                }
+            });
+        });
+
+        client.on('message', (topic, message) => {
+            handleIncomingMessage(topic, message.toString());
+        });
+
+        client.on('error', (err) => {
+            statusDot.className = 'status-dot disconnected';
+            statusText.innerText = 'Connection Error';
+            addLog('ERROR', err.message, 'error');
+        });
+
+        client.on('close', () => {
+            statusDot.className = 'status-dot disconnected';
+            statusText.innerText = 'Disconnected';
+            btnConnect.style.display = 'inline-flex';
+            btnDisconnect.style.display = 'none';
+        });
+    }
+
+    function disconnectMQTT() {
+        if (client) {
+            client.end();
+            client = null;
+            statusDot.className = 'status-dot disconnected';
+            statusText.innerText = 'Disconnected by user';
+            btnConnect.style.display = 'inline-flex';
+            btnDisconnect.style.display = 'none';
+            addLog('SYSTEM', 'Disconnected from broker', 'system');
+        }
+    }
+
+    function handleIncomingMessage(topic, payload) {
+        messageCounter++;
+        messageCountEl.innerText = messageCounter + ' Messages';
+
+        // Parse topic: devices/{mac}/pin/{pin_name}/set
+        const pinMatch = topic.match(/devices\/([^\/]+)\/pin\/([^\/]+)\/set/);
+        const cmdMatch = topic.match(/devices\/([^\/]+)\/command/);
+
+        let typeClass = '';
+        if (payload === '1') typeClass = 'type-set-1';
+        if (payload === '0') typeClass = 'type-set-0';
+
+        addLog(topic, payload, typeClass);
+
+        if (pinMatch) {
+            const mac = pinMatch[1];
+            const pinName = pinMatch[2];
+            updateDevicePin(mac, pinName, payload);
+        } else if (cmdMatch) {
+            try {
+                const data = JSON.parse(payload);
+                if (data.pin && data.state !== undefined) {
+                    updateDevicePin(cmdMatch[1], data.pin, data.state, data.appliance);
+                }
+            } catch (e) {
+                // Not JSON, ignore
+            }
+        }
+    }
+
+    function updateDevicePin(mac, pinName, state, applianceName = null) {
+        if (noDevicesPlaceholder) {
+            noDevicesPlaceholder.style.display = 'none';
+        }
+
+        const key = `${mac}_${pinName}`.replace(/[^a-zA-Z0-9_]/g, '_');
+        const isOn = (state === '1' || parseInt(state) > 0);
+        const timeNow = new Date().toLocaleTimeString();
+
+        let box = document.getElementById('device_' + key);
+
+        if (!box) {
+            box = document.createElement('div');
+            box.id = 'device_' + key;
+            devicesContainer.prepend(box);
+
+            trackedPins[key] = true;
+            deviceCountEl.innerText = Object.keys(trackedPins).length + ' Pins Detected';
+        }
+
+        box.className = 'device-box ' + (isOn ? 'state-on' : 'state-off');
+        box.innerHTML = `
+            <div class="device-header">
+                <div>
+                    <div class="device-pin-name">${pinName}</div>
+                    <div class="device-mac">${mac}</div>
+                </div>
+                <div class="device-state-pill">${isOn ? '🟢 ON' : '⚫ OFF'}</div>
+            </div>
+            <div style="font-size: 13px; font-weight: 600; color: #E2E8F0;">
+                ${applianceName ? applianceName : 'Value: ' + state}
+            </div>
+            <div class="device-meta">
+                <span>Value: <strong style="color:#fff;">${state}</strong></span>
+                <span>Updated: ${timeNow}</span>
+            </div>
+        `;
+    }
+
+    function addLog(topic, payload, extraClass = '') {
+        const time = new Date().toLocaleTimeString();
+        const entry = document.createElement('div');
+        entry.className = 'log-entry ' + extraClass;
+        entry.innerHTML = `
+            <div class="log-time">${time}</div>
+            <div class="log-topic">${escapeHtml(topic)}</div>
+            <div class="log-payload">${escapeHtml(payload)}</div>
+        `;
+
+        logStream.prepend(entry);
+
+        // Keep maximum 150 entries in DOM
+        if (logStream.children.length > 150) {
+            logStream.removeChild(logStream.lastChild);
+        }
+    }
+
+    function clearLogs() {
+        logStream.innerHTML = '';
+        messageCounter = 0;
+        messageCountEl.innerText = '0 Messages';
+    }
+
+    function clearDevices() {
+        for (let k in trackedPins) delete trackedPins[k];
+        devicesContainer.innerHTML = '';
+        devicesContainer.appendChild(noDevicesPlaceholder);
+        noDevicesPlaceholder.style.display = 'block';
+        deviceCountEl.innerText = '0 Pins Detected';
+    }
+
+    function sendTestPublish(customVal) {
+        if (!client || !client.connected) {
+            alert('Broker is not connected yet! Please connect first.');
+            return;
+        }
+
+        const topic = document.getElementById('pubTopic').value.trim();
+        const payload = customVal !== undefined ? customVal : document.getElementById('pubPayload').value.trim();
+
+        client.publish(topic, payload, (err) => {
+            if (err) {
+                alert('Publish failed: ' + err.message);
+            } else {
+                addLog('PUBLISHED -> ' + topic, payload, payload === '1' ? 'type-set-1' : 'type-set-0');
+            }
+        });
+    }
+
+    function escapeHtml(str) {
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // Auto-connect on page load
+    window.addEventListener('DOMContentLoaded', () => {
+        connectMQTT();
+    });
+</script>
+
+</body>
+</html>

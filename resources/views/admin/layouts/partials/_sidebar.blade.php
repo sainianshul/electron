@@ -41,6 +41,17 @@
                     {{-- ADMIN NAVIGATION                          --}}
                     {{-- ========================================= --}}
                     
+                    {{-- Finger / Gesture Control --}}
+                    <li class="nav-item {{ request()->routeIs('user.gesture.*') ? 'active' : '' }}">
+                        <a class="nav-link" href="{{ route('user.gesture.index') }}">
+                            <span class="nav-link-icon d-md-none d-lg-inline-block">
+                                <i class="ti ti-hand-stop"></i>
+                            </span>
+                            <span class="nav-link-title">Finger Control</span>
+                            <span class="badge badge-sm bg-blue-lt text-uppercase ms-auto">AI Vision</span>
+                        </a>
+                    </li>
+
                     {{-- Dashboard --}}
                     <li class="nav-item {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
                         <a class="nav-link" href="{{ route('admin.dashboard') }}">
@@ -138,6 +149,16 @@
                     {{-- User Smart Devices & Appliances --}}
                     <li class="nav-item mt-3 mb-1">
                         <div class="nav-link text-uppercase text-muted fs-8 fw-bold">My Smart Home</div>
+                    </li>
+
+                    <li class="nav-item {{ request()->routeIs('user.gesture.*') ? 'active' : '' }}">
+                        <a class="nav-link" href="{{ route('user.gesture.index') }}">
+                            <span class="nav-link-icon d-md-none d-lg-inline-block">
+                                <i class="ti ti-hand-stop"></i>
+                            </span>
+                            <span class="nav-link-title">Finger Control</span>
+                            <span class="badge badge-sm bg-blue-lt text-uppercase ms-auto">AI</span>
+                        </a>
                     </li>
 
                     <li class="nav-item {{ request()->routeIs('user.appliances.*') ? 'active' : '' }}">
